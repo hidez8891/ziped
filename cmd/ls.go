@@ -10,30 +10,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	findtext   string
-	findregexp string
-)
-
 func newLsCmd(stdout, stderr io.Writer) *cobra.Command {
+	lscmd := &ls{
+		stdout: stdout,
+		stderr: stderr,
+	}
+
 	var cmd = &cobra.Command{
 		Use:   "ls [filepath...]",
 		Short: "Show file list",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			lscmd := &ls{stdout, stderr}
 			lscmd.run(cmd, args)
 		},
 	}
 
-	cmd.Flags().StringVar(&findtext, "filter", "", "Show filename pattern (support wildcard)")
-	cmd.Flags().StringVar(&findregexp, "regexp", "", "Show filename pattern (support regexp)")
+	cmd.Flags().StringVar(&lscmd.findtext, "filter", "", "Show filename pattern (support wildcard)")
+	cmd.Flags().StringVar(&lscmd.findregexp, "regexp", "", "Show filename pattern (support regexp)")
 	return cmd
 }
 
 type ls struct {
-	stdout io.Writer
-	stderr io.Writer
+	stdout     io.Writer
+	stderr     io.Writer
+	findtext   string
+	findregexp string
 }
 
 func (o *ls) run(cmd *cobra.Command, args []string) {
@@ -69,17 +70,17 @@ func (o *ls) render(filepath string) error {
 	filter := func(_ string) (bool, error) {
 		return true, nil
 	}
-	if len(findregexp) != 0 {
-		reg, err := regexp.Compile(findregexp)
+	if len(o.findregexp) != 0 {
+		reg, err := regexp.Compile(o.findregexp)
 		if err != nil {
 			return err
 		}
 		filter = func(s string) (bool, error) {
 			return reg.Match([]byte(s)), nil
 		}
-	} else if len(findtext) != 0 {
+	} else if len(o.findtext) != 0 {
 		filter = func(s string) (bool, error) {
-			return doublestar.Match(findtext, s)
+			return doublestar.Match(o.findtext, s)
 		}
 	}
 
