@@ -38,32 +38,49 @@ type ls struct {
 }
 
 func (o *ls) run(cmd *cobra.Command, args []string) {
-	if len(args) == 1 {
-		err := o.render(args[0])
+	paths, err := expandFilePath(args)
+	if err != nil {
+		fmt.Fprintln(o.stderr, err)
+		return
+	}
+
+	if len(paths) == 1 {
+		files, err := o.execute(paths[0])
 		if err != nil {
 			fmt.Fprintln(o.stderr, err)
 			return
 		}
+		for _, file := range files {
+			fmt.Fprintln(o.stdout, file)
+		}
 	} else {
-		for i, filepath := range args {
-			fmt.Fprintf(o.stdout, "%s:\n", filepath)
-
-			err := o.render(filepath)
+		for i, filepath := range paths {
+			files, err := o.execute(filepath)
 			if err != nil {
 				fmt.Fprintln(o.stderr, err)
 				return
 			}
-			if i != len(args)-1 {
+			if len(files) == 0 {
+				continue
+			}
+
+			fmt.Fprintf(o.stdout, "%s:\n", filepath)
+			for _, file := range files {
+				fmt.Fprintln(o.stdout, file)
+			}
+			if i != len(paths)-1 {
 				fmt.Fprintln(o.stdout)
 			}
 		}
 	}
 }
 
-func (o *ls) render(filepath string) error {
+func (o *ls) execute(filepath string) ([]string, error) {
+	result := make([]string, 0)
+
 	zr, err := zip.OpenReader(filepath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer zr.Close()
 
@@ -73,7 +90,7 @@ func (o *ls) render(filepath string) error {
 	if len(o.findregexp) != 0 {
 		reg, err := regexp.Compile(o.findregexp)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		filter = func(s string) (bool, error) {
 			return reg.Match([]byte(s)), nil
@@ -87,11 +104,11 @@ func (o *ls) render(filepath string) error {
 	for _, zf := range zr.File {
 		ok, err := filter(zf.Name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if ok {
-			fmt.Fprintln(o.stdout, zf.Name)
+			result = append(result, zf.Name)
 		}
 	}
-	return nil
+	return result, nil
 }
