@@ -28,6 +28,17 @@ func TestLsRender(t *testing.T) {
 				"ls",
 				"../testcase/test.zip",
 				"--filter",
+				"*.txt",
+			},
+			output: strings.Join([]string{
+				"text1.txt",
+			}, "\n") + "\n",
+		},
+		{
+			args: []string{
+				"ls",
+				"../testcase/test.zip",
+				"--filter",
 				"dir/*.txt",
 			},
 			output: strings.Join([]string{
