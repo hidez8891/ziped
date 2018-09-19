@@ -115,6 +115,7 @@ func (o *rm) execute(filepath string) error {
 		return errors.New("file name pattern is required")
 	}
 
+	var isModified = false
 	for _, header := range zu.Files() {
 		ok, err := filter(header.Name)
 		if err != nil {
@@ -124,9 +125,13 @@ func (o *rm) execute(filepath string) error {
 			continue
 		}
 
+		isModified = true
 		if err := zu.Remove(header.Name); err != nil {
 			return err
 		}
+	}
+	if !isModified {
+		return nil
 	}
 
 	var outfile *os.File

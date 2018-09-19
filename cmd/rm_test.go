@@ -99,6 +99,44 @@ func TestRmExecuteOverwrite(t *testing.T) {
 	}
 }
 
+func TestRmNotModified(t *testing.T) {
+	testfile := "../testcase/test.zip"
+	args := []string{
+		"rm",
+		"--overwrite",
+		"--filter",
+		"dummy",
+	}
+
+	tmpname, err := copyTempFile(testfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpname)
+
+	st, err := os.Stat(tmpname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time1 := st.ModTime().UnixNano()
+
+	cmd := newRootCmd(ioutil.Discard, ioutil.Discard)
+	cmd.SetArgs(append(args, tmpname))
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err = os.Stat(tmpname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time2 := st.ModTime().UnixNano()
+
+	if time1 != time2 {
+		t.Fatalf("file was changed unnecessarily")
+	}
+}
+
 func copyTempFile(path string) (string, error) {
 	r, err := os.Open(path)
 	if err != nil {
