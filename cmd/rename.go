@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	path "path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +29,8 @@ func newRenameCmd(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&renamecmd.pattern, "filter", "", "target filename pattern")
+	cmd.Flags().StringVar(&renamecmd.regexp, "regexp", "", "target filename pattern")
 	cmd.Flags().BoolVar(&renamecmd.isOverwrite, "overwrite", false, "overwrite source file")
 	cmd.Flags().StringVar(&renamecmd.outFilename, "out", "", "output file name")
 	cmd.Flags().StringVar(&renamecmd.from, "from", "", "text before replacement")
@@ -37,6 +41,8 @@ func newRenameCmd(stdout, stderr io.Writer) *cobra.Command {
 type rename struct {
 	stdout      io.Writer
 	stderr      io.Writer
+	pattern     string
+	regexp      string
 	isOverwrite bool
 	outFilename string
 	from        string
@@ -96,8 +102,35 @@ func (o *rename) execute(filepath string) error {
 		}
 	}()
 
+	var filter func(s string) (bool, error)
+	if len(o.regexp) != 0 {
+		reg, err := regexp.Compile(o.regexp)
+		if err != nil {
+			return err
+		}
+		filter = func(s string) (bool, error) {
+			return reg.Match([]byte(s)), nil
+		}
+	} else if len(o.pattern) != 0 {
+		filter = func(s string) (bool, error) {
+			return doublestar.Match(o.pattern, s)
+		}
+	} else {
+		filter = func(s string) (bool, error) {
+			return true, nil
+		}
+	}
+
 	var isModified = false
 	for _, header := range zu.Files() {
+		ok, err := filter(header.Name)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+
 		oldname := header.Name
 		newname := strings.Replace(oldname, o.from, o.to, 1)
 

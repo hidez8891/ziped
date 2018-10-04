@@ -48,6 +48,44 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 				"texttext1.txt",
 			},
 		},
+		{
+			file: "../testcase/test.zip",
+			args: []string{
+				"rename",
+				"--overwrite",
+				"--filter",
+				"*.txt",
+				"--from",
+				".txt",
+				"--to",
+				".md",
+			},
+			files: []string{
+				"dir/",
+				"dir/text1.txt",
+				"dir/text2.txt",
+				"text1.md",
+			},
+		},
+		{
+			file: "../testcase/test.zip",
+			args: []string{
+				"rename",
+				"--overwrite",
+				"--regexp",
+				"dir/.+\\.txt",
+				"--from",
+				".txt",
+				"--to",
+				".md",
+			},
+			files: []string{
+				"dir/",
+				"dir/text1.md",
+				"dir/text2.md",
+				"text1.txt",
+			},
+		},
 	}
 
 	for _, tt := range tests {
