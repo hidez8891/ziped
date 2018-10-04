@@ -26,6 +26,7 @@ func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 
 	cmd.AddCommand(newLsCmd(stdout, stderr))
 	cmd.AddCommand(newRmCmd(stdout, stderr))
+	cmd.AddCommand(newConvertCmd(stdout, stderr))
 	return cmd
 }
 
