@@ -7,9 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	path "path/filepath"
-	"regexp"
 
-	"github.com/bmatcuk/doublestar"
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
 )
@@ -29,8 +27,6 @@ func newRmCmd(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&rmcmd.pattern, "filter", "", "remove filename pattern")
-	cmd.Flags().StringVar(&rmcmd.regexp, "regexp", "", "remove filename pattern")
 	cmd.Flags().BoolVar(&rmcmd.isOverwrite, "overwrite", false, "overwrite source file")
 	cmd.Flags().StringVar(&rmcmd.outFilename, "out", "", "output file name")
 	return cmd
@@ -39,8 +35,6 @@ func newRmCmd(stdout, stderr io.Writer) *cobra.Command {
 type rm struct {
 	stdout      io.Writer
 	stderr      io.Writer
-	pattern     string
-	regexp      string
 	isOverwrite bool
 	outFilename string
 }
@@ -98,21 +92,11 @@ func (o *rm) execute(filepath string) error {
 		}
 	}()
 
-	var filter func(s string) (bool, error)
-	if len(o.regexp) != 0 {
-		reg, err := regexp.Compile(o.regexp)
-		if err != nil {
-			return err
-		}
-		filter = func(s string) (bool, error) {
-			return reg.Match([]byte(s)), nil
-		}
-	} else if len(o.pattern) != 0 {
-		filter = func(s string) (bool, error) {
-			return doublestar.Match(o.pattern, s)
-		}
-	} else {
-		return errors.New("file name pattern is required")
+	filter, err := generatePathFilter(func(_ string) (bool, error) {
+		return false, errors.New("file name pattern is required")
+	})
+	if err != nil {
+		return err
 	}
 
 	var isModified = false
