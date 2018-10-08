@@ -9,7 +9,7 @@ import (
 
 func newLsCmd(params *cmdParams) *cobra.Command {
 	lscmd := &ls{
-		cmdParams: params,
+		baseCmd: &baseCmd{params},
 	}
 
 	var cmd = &cobra.Command{
@@ -25,7 +25,7 @@ func newLsCmd(params *cmdParams) *cobra.Command {
 }
 
 type ls struct {
-	*cmdParams
+	*baseCmd
 }
 
 func (o *ls) run(cmd *cobra.Command, args []string) {
