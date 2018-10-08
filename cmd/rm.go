@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,10 +11,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRmCmd(stdout, stderr io.Writer) *cobra.Command {
+func newRmCmd(params *cmdParams) *cobra.Command {
 	rmcmd := &rm{
-		stdout: stdout,
-		stderr: stderr,
+		cmdParams: params,
 	}
 
 	var cmd = &cobra.Command{
@@ -27,16 +25,11 @@ func newRmCmd(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&rmcmd.isOverwrite, "overwrite", false, "overwrite source file")
-	cmd.Flags().StringVar(&rmcmd.outFilename, "out", "", "output file name")
 	return cmd
 }
 
 type rm struct {
-	stdout      io.Writer
-	stderr      io.Writer
-	isOverwrite bool
-	outFilename string
+	*cmdParams
 }
 
 func (o *rm) run(cmd *cobra.Command, args []string) {
@@ -92,9 +85,7 @@ func (o *rm) execute(filepath string) error {
 		}
 	}()
 
-	filter, err := generatePathFilter(func(_ string) (bool, error) {
-		return false, errors.New("file name pattern is required")
-	})
+	filter, err := o.generatePathFilter()
 	if err != nil {
 		return err
 	}

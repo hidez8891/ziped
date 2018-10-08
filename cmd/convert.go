@@ -13,10 +13,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newConvertCmd(stdout, stderr io.Writer) *cobra.Command {
+func newConvertCmd(params *cmdParams) *cobra.Command {
 	convcmd := &convert{
-		stdout: stdout,
-		stderr: stderr,
+		cmdParams: params,
 	}
 
 	var cmd = &cobra.Command{
@@ -28,18 +27,13 @@ func newConvertCmd(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&convcmd.isOverwrite, "overwrite", false, "overwrite source file")
-	cmd.Flags().StringVar(&convcmd.outFilename, "out", "", "output file name")
 	cmd.Flags().StringVar(&convcmd.command, "cmd", "", "convert command")
 	return cmd
 }
 
 type convert struct {
-	stdout      io.Writer
-	stderr      io.Writer
-	isOverwrite bool
-	outFilename string
-	command     string
+	*cmdParams
+	command string
 }
 
 func (o *convert) run(cmd *cobra.Command, args []string) {
@@ -99,9 +93,7 @@ func (o *convert) execute(filepath string) error {
 		}
 	}()
 
-	filter, err := generatePathFilter(func(_ string) (bool, error) {
-		return true, nil
-	})
+	filter, err := o.generatePathFilter()
 	if err != nil {
 		return err
 	}

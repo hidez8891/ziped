@@ -10,11 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	gPattern string
-	gRegexp  string
-)
-
 // Execute executes the root command.
 func Execute() {
 	cmd := newRootCmd(os.Stdout, os.Stderr)
@@ -30,13 +25,20 @@ func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	}
 	cmd.SetOutput(stderr)
 
-	cmd.AddCommand(newLsCmd(stdout, stderr))
-	cmd.AddCommand(newRmCmd(stdout, stderr))
-	cmd.AddCommand(newConvertCmd(stdout, stderr))
-	cmd.AddCommand(newRenameCmd(stdout, stderr))
+	params := &cmdParams{
+		stdout: stdout,
+		stderr: stderr,
+	}
 
-	cmd.PersistentFlags().StringVar(&gPattern, "filter", "", "target filename pattern (support wildcard)")
-	cmd.PersistentFlags().StringVar(&gRegexp, "regexp", "", "target filename pattern (support regexp)")
+	cmd.AddCommand(newLsCmd(params))
+	cmd.AddCommand(newRmCmd(params))
+	cmd.AddCommand(newConvertCmd(params))
+	cmd.AddCommand(newRenameCmd(params))
+
+	cmd.PersistentFlags().StringVar(&params.pattern, "filter", "", "target filename pattern (support wildcard)")
+	cmd.PersistentFlags().StringVar(&params.regexp, "regexp", "", "target filename pattern (support regexp)")
+	cmd.PersistentFlags().BoolVar(&params.isOverwrite, "overwrite", false, "overwrite source file")
+	cmd.PersistentFlags().StringVar(&params.outFilename, "out", "", "output file name")
 	return cmd
 }
 
@@ -56,20 +58,31 @@ func expandFilePath(paths []string) ([]string, error) {
 	return newpaths, nil
 }
 
-func generatePathFilter(def func(string) (bool, error)) (func(string) (bool, error), error) {
-	filter := def
+type cmdParams struct {
+	pattern     string
+	regexp      string
+	isOverwrite bool
+	outFilename string
+	stdout      io.Writer
+	stderr      io.Writer
+}
 
-	if len(gRegexp) != 0 {
-		reg, err := regexp.Compile(gRegexp)
+func (o *cmdParams) generatePathFilter() (func(string) (bool, error), error) {
+	filter := func(_ string) (bool, error) {
+		return true, nil
+	}
+
+	if len(o.regexp) != 0 {
+		reg, err := regexp.Compile(o.regexp)
 		if err != nil {
 			return nil, err
 		}
 		filter = func(s string) (bool, error) {
 			return reg.Match([]byte(s)), nil
 		}
-	} else if len(gPattern) != 0 {
+	} else if len(o.pattern) != 0 {
 		filter = func(s string) (bool, error) {
-			return doublestar.Match(gPattern, s)
+			return doublestar.Match(o.pattern, s)
 		}
 	}
 	return filter, nil

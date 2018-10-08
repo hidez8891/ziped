@@ -12,10 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRenameCmd(stdout, stderr io.Writer) *cobra.Command {
+func newRenameCmd(params *cmdParams) *cobra.Command {
 	renamecmd := &rename{
-		stdout: stdout,
-		stderr: stderr,
+		cmdParams: params,
 	}
 
 	var cmd = &cobra.Command{
@@ -27,20 +26,15 @@ func newRenameCmd(stdout, stderr io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&renamecmd.isOverwrite, "overwrite", false, "overwrite source file")
-	cmd.Flags().StringVar(&renamecmd.outFilename, "out", "", "output file name")
 	cmd.Flags().StringVar(&renamecmd.from, "from", "", "text before replacement")
 	cmd.Flags().StringVar(&renamecmd.to, "to", "", "text after replacement")
 	return cmd
 }
 
 type rename struct {
-	stdout      io.Writer
-	stderr      io.Writer
-	isOverwrite bool
-	outFilename string
-	from        string
-	to          string
+	*cmdParams
+	from string
+	to   string
 }
 
 func (o *rename) run(cmd *cobra.Command, args []string) {
@@ -96,9 +90,7 @@ func (o *rename) execute(filepath string) error {
 		}
 	}()
 
-	filter, err := generatePathFilter(func(_ string) (bool, error) {
-		return true, nil
-	})
+	filter, err := o.generatePathFilter()
 	if err != nil {
 		return err
 	}

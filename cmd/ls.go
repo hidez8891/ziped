@@ -2,16 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
 )
 
-func newLsCmd(stdout, stderr io.Writer) *cobra.Command {
+func newLsCmd(params *cmdParams) *cobra.Command {
 	lscmd := &ls{
-		stdout: stdout,
-		stderr: stderr,
+		cmdParams: params,
 	}
 
 	var cmd = &cobra.Command{
@@ -27,8 +25,7 @@ func newLsCmd(stdout, stderr io.Writer) *cobra.Command {
 }
 
 type ls struct {
-	stdout io.Writer
-	stderr io.Writer
+	*cmdParams
 }
 
 func (o *ls) run(cmd *cobra.Command, args []string) {
@@ -78,9 +75,7 @@ func (o *ls) execute(filepath string) ([]string, error) {
 	}
 	defer zr.Close()
 
-	filter, err := generatePathFilter(func(_ string) (bool, error) {
-		return true, nil
-	})
+	filter, err := o.generatePathFilter()
 	if err != nil {
 		return nil, err
 	}
