@@ -1,7 +1,19 @@
 package main
 
-import "./cmd"
+import (
+	"os"
+
+	"./cmd"
+)
 
 func main() {
-	cmd.Execute()
+	cmd := cmd.NewCmd()
+
+	cmd.Use = _Name
+	cmd.Short = _Description
+	cmd.Version = _Version
+
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

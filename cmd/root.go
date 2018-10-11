@@ -14,19 +14,55 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Execute executes the root command.
-func Execute() {
-	cmd := newRootCmd(os.Stdout, os.Stderr)
-	if err := cmd.Execute(); err != nil {
-		cmd.Println(err)
-		os.Exit(1)
-	}
+const usageTemplate = `
+{{- if .Version}}
+{{- "Name:"}}
+  {{.CommandPath}} - {{.Short}} [{{.Version}}]
+  {{- "\n"}}
+{{- end}}
+{{- "\n"}}
+
+{{- "Usage:"}}
+  {{.CommandPath}}
+  {{- if .HasAvailableSubCommands}}
+	{{- " [command]"}}
+  {{- end }}
+  {{- " [options] files..."}}
+  {{- "\n"}}
+
+{{- if .HasAvailableSubCommands}}
+Commands:
+  {{- "\n"}}
+  {{- range .Commands}}
+	{{- if (or .IsAvailableCommand (eq .Name "help"))}}
+	  {{- "  "}}
+      {{- rpad .Name .NamePadding }} {{.Short}}
+      {{- "\n"}}
+    {{- end}}
+  {{- end}}
+{{- end}}
+
+{{- if .HasAvailableLocalFlags}}
+Options:
+  {{- "\n"}}
+  {{- .LocalFlags.FlagUsages | trimTrailingWhitespaces}}
+  {{- "\n"}}
+{{- end}}
+
+{{- if .HasAvailableInheritedFlags}}
+Global Options:
+  {{- "\n"}}
+  {{- .InheritedFlags.FlagUsages | trimTrailingWhitespaces}}
+  {{- "\n"}}
+{{- end}}
+`
+
+func NewCmd() *cobra.Command {
+	return newRootCmd(os.Stdout, os.Stderr)
 }
 
 func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
-	cmd := &cobra.Command{
-		Use: "ziped",
-	}
+	cmd := &cobra.Command{}
 	cmd.SetOutput(stderr)
 
 	params := &cmdParams{
@@ -43,6 +79,10 @@ func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	cmd.PersistentFlags().StringVar(&params.regexp, "regexp", "", "target filename pattern (support regexp)")
 	cmd.PersistentFlags().BoolVar(&params.isOverwrite, "overwrite", false, "overwrite source file")
 	cmd.PersistentFlags().StringVar(&params.outFilename, "out", "", "output file name")
+
+	cmd.SetUsageTemplate(usageTemplate)
+	cmd.SetHelpTemplate(usageTemplate)
+
 	return cmd
 }
 
