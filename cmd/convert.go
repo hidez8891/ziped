@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 
 	"github.com/hidez8891/zip"
@@ -90,35 +91,32 @@ func (o *convert) executeShell(zu *zip.Updater, name string) error {
 	if err != nil {
 		return err
 	}
+
 	sh := exec.Command(args[0], args[1:]...)
+	sh.Stderr = os.Stderr
 
 	stdin, err := sh.StdinPipe()
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if stdin != nil {
-			stdin.Close()
-		}
-	}()
+	defer close(stdin)
 
 	r, err := zu.Open(name)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if r != nil {
-			r.Close()
-		}
-	}()
+	defer close(r)
 
-	if _, err := io.Copy(stdin, r); err != nil {
-		return err
-	}
-	stdin.Close()
-	stdin = nil
-	r.Close()
-	r = nil
+	go func() {
+		defer func() {
+			stdin.Close()
+			r.Close()
+			stdin = nil
+			r = nil
+		}()
+
+		io.Copy(stdin, r)
+	}()
 
 	out, err := sh.Output()
 	if err != nil {
