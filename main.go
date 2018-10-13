@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"./cmd"
+	"github.com/hidez8891/ziped/cmd"
 )
 
 func main() {
