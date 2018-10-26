@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -135,23 +134,4 @@ func TestRmNotModified(t *testing.T) {
 	if time1 != time2 {
 		t.Fatalf("file was changed unnecessarily")
 	}
-}
-
-func copyTempFile(path string) (string, error) {
-	r, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer r.Close()
-
-	tmp, err := ioutil.TempFile("", "test")
-	if err != nil {
-		return "", err
-	}
-	defer tmp.Close()
-
-	if _, err := io.Copy(tmp, r); err != nil {
-		return "", err
-	}
-	return tmp.Name(), nil
 }
