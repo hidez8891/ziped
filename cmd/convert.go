@@ -9,6 +9,7 @@ import (
 	"github.com/hidez8891/zip"
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 func newConvertCmd(params *cmdParams) *cobra.Command {
@@ -26,12 +27,14 @@ func newConvertCmd(params *cmdParams) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&convcmd.command, "cmd", "", "convert command")
+	cmd.Flags().UintVar(&convcmd.jobs, "jobs", 1, "parallel job number")
 	return cmd
 }
 
 type convert struct {
 	*baseCmd
 	command string
+	jobs    uint
 }
 
 func (o *convert) run(cmd *cobra.Command, args []string) {
@@ -49,12 +52,33 @@ func (o *convert) run(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(o.stderr, "execute command is required")
 		return
 	}
+	if o.jobs < 1 {
+		o.jobs = 1
+	}
 
-	for _, filepath := range paths {
-		err := o.execute(filepath)
-		if err != nil {
+	threads := pool.NewLimited(o.jobs)
+	defer threads.Close()
+
+	worker := threads.Batch()
+	go func() {
+		for _, filepath := range paths {
+			filepath := filepath
+
+			worker.Queue(func(wu pool.WorkUnit) (interface{}, error) {
+				if wu.IsCancelled() {
+					return nil, nil
+				}
+				err := o.execute(filepath)
+				return nil, err
+			})
+		}
+		worker.QueueComplete()
+	}()
+
+	for result := range worker.Results() {
+		if err := result.Error(); err != nil {
+			worker.Cancel()
 			fmt.Fprintln(o.stderr, err)
-			return
 		}
 	}
 }

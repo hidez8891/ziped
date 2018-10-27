@@ -133,7 +133,7 @@ func TestConvertParallelExecute(t *testing.T) {
 				"text1.txt",
 				"--cmd",
 				"sort",
-				"-j=2",
+				"--jobs=2",
 			},
 			contents: map[string]map[string]string{
 				"../testcase/test.zip": map[string]string{
