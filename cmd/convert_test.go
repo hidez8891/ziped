@@ -31,6 +31,7 @@ func TestConvertExecuteOverwrite(t *testing.T) {
 				"text1.txt",
 				"--cmd",
 				"sort",
+				"--show-progress=false",
 			},
 			contents: map[string]string{
 				"text1.txt":     "hello1\r\nhello2\r\nhello3",
@@ -49,6 +50,7 @@ func TestConvertExecuteOverwrite(t *testing.T) {
 				"*.txt",
 				"--cmd",
 				"sort -r",
+				"--show-progress=false",
 			},
 			contents: map[string]string{
 				"text1.txt":     "hello1\r\nhello2\r\nhello3",
@@ -67,6 +69,7 @@ func TestConvertExecuteOverwrite(t *testing.T) {
 				"*.txt",
 				"--cmd",
 				"sort /r",
+				"--show-progress=false",
 			},
 			contents: map[string]string{
 				"text1.txt":     "hello3\r\nhello2\r\nhello1",
@@ -85,6 +88,7 @@ func TestConvertExecuteOverwrite(t *testing.T) {
 				"\\d.txt",
 				"--cmd",
 				"sort",
+				"--show-progress=false",
 			},
 			contents: map[string]string{
 				"text1.txt":     "hello1\r\nhello2\r\nhello3",
@@ -134,6 +138,7 @@ func TestConvertParallelExecute(t *testing.T) {
 				"--cmd",
 				"sort",
 				"--jobs=2",
+				"--show-progress=false",
 			},
 			contents: map[string]map[string]string{
 				"../testcase/test.zip": map[string]string{
