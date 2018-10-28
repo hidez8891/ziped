@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"os"
 	"testing"
 
@@ -89,27 +88,13 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-
 		tmpname, err := copyTempFile(tt.file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(tmpname)
 
-		cmd := newRootCmd(stdout, stderr)
-		cmd.SetArgs(append(tt.args, tmpname))
-		if err := cmd.Execute(); err != nil {
-			t.Fatal(err)
-		}
-
-		if stderr.Len() != 0 {
-			t.Fatalf("error output: %q", stderr.String())
-		}
-		if stdout.Len() != 0 {
-			t.Fatalf("stdout output: %q", stdout.String())
-		}
+		helperExecuteCommand(t, append(tt.args, tmpname))
 
 		zr, err := zip.OpenReader(tmpname)
 		if err != nil {

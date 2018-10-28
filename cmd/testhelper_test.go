@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
+	"testing"
 )
 
 func copyTempFile(path string) (string, error) {
@@ -23,4 +25,24 @@ func copyTempFile(path string) (string, error) {
 		return "", err
 	}
 	return tmp.Name(), nil
+}
+
+func helperExecuteCommand(t *testing.T, args []string) {
+	t.Helper()
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	cmd := newRootCmd(stdout, stderr)
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if stderr.Len() != 0 {
+		t.Fatalf("error output: %q", stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout output: %q", stdout.String())
+	}
 }

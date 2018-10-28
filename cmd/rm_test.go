@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -58,27 +56,13 @@ func TestRmExecuteOverwrite(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		stdout := new(bytes.Buffer)
-		stderr := new(bytes.Buffer)
-
 		tmpname, err := copyTempFile(tt.file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(tmpname)
 
-		cmd := newRootCmd(stdout, stderr)
-		cmd.SetArgs(append(tt.args, tmpname))
-		if err := cmd.Execute(); err != nil {
-			t.Fatal(err)
-		}
-
-		if stderr.Len() != 0 {
-			t.Fatalf("error output: %q", stderr.String())
-		}
-		if stdout.Len() != 0 {
-			t.Fatalf("stdout output: %q", stdout.String())
-		}
+		helperExecuteCommand(t, append(tt.args, tmpname))
 
 		zr, err := zip.OpenReader(tmpname)
 		if err != nil {
@@ -119,11 +103,7 @@ func TestRmNotModified(t *testing.T) {
 	}
 	time1 := st.ModTime().UnixNano()
 
-	cmd := newRootCmd(ioutil.Discard, ioutil.Discard)
-	cmd.SetArgs(append(args, tmpname))
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
+	helperExecuteCommand(t, append(args, tmpname))
 
 	st, err = os.Stat(tmpname)
 	if err != nil {

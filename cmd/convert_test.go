@@ -112,7 +112,7 @@ func TestConvertExecuteOverwrite(t *testing.T) {
 			defer os.Remove(tmpname)
 
 			helperExecuteCommand(t, append(tt.args, tmpname))
-			helperCheckFileContents(t, tmpname, tt.contents)
+			helperConvertCheckFileContents(t, tmpname, tt.contents)
 		})
 	}
 }
@@ -181,33 +181,13 @@ func TestConvertParallelExecute(t *testing.T) {
 				tmpname := tempfilemap[filename]
 				contents := tt.contents[filename]
 
-				helperCheckFileContents(t, tmpname, contents)
+				helperConvertCheckFileContents(t, tmpname, contents)
 			}
 		})
 	}
 }
 
-func helperExecuteCommand(t *testing.T, args []string) {
-	t.Helper()
-
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-
-	cmd := newRootCmd(stdout, stderr)
-	cmd.SetArgs(args)
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
-
-	if stderr.Len() != 0 {
-		t.Fatalf("error output: %q", stderr.String())
-	}
-	if stdout.Len() != 0 {
-		t.Fatalf("stdout output: %q", stdout.String())
-	}
-}
-
-func helperCheckFileContents(t *testing.T, filename string, contents map[string]string) {
+func helperConvertCheckFileContents(t *testing.T, filename string, contents map[string]string) {
 	t.Helper()
 
 	zr, err := zip.OpenReader(filename)
