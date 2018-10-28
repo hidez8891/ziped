@@ -6,6 +6,7 @@ import (
 
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 func newRenameCmd(params *cmdParams) *cobra.Command {
@@ -24,6 +25,7 @@ func newRenameCmd(params *cmdParams) *cobra.Command {
 
 	cmd.Flags().StringVar(&renamecmd.from, "from", "", "text before replacement")
 	cmd.Flags().StringVar(&renamecmd.to, "to", "", "text after replacement")
+	cmd.Flags().UintVar(&renamecmd.jobs, "jobs", 1, "parallel job number")
 	return cmd
 }
 
@@ -31,6 +33,7 @@ type rename struct {
 	*baseCmd
 	from string
 	to   string
+	jobs uint
 }
 
 func (o *rename) run(cmd *cobra.Command, args []string) {
@@ -44,12 +47,33 @@ func (o *rename) run(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(o.stderr, err.Error())
 		return
 	}
+	if o.jobs < 1 {
+		o.jobs = 1
+	}
 
-	for _, filepath := range paths {
-		err := o.execute(filepath)
-		if err != nil {
+	threads := pool.NewLimited(o.jobs)
+	defer threads.Close()
+
+	worker := threads.Batch()
+	go func() {
+		for _, filepath := range paths {
+			filepath := filepath
+
+			worker.Queue(func(wu pool.WorkUnit) (interface{}, error) {
+				if wu.IsCancelled() {
+					return nil, nil
+				}
+				err := o.execute(filepath)
+				return nil, err
+			})
+		}
+		worker.QueueComplete()
+	}()
+
+	for result := range worker.Results() {
+		if err := result.Error(); err != nil {
+			worker.Cancel()
 			fmt.Fprintln(o.stderr, err)
-			return
 		}
 	}
 }
