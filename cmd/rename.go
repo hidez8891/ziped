@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
+	"gopkg.in/cheggaaa/pb.v1"
 	"gopkg.in/go-playground/pool.v3"
 )
 
@@ -26,14 +28,16 @@ func newRenameCmd(params *cmdParams) *cobra.Command {
 	cmd.Flags().StringVar(&renamecmd.from, "from", "", "text before replacement")
 	cmd.Flags().StringVar(&renamecmd.to, "to", "", "text after replacement")
 	cmd.Flags().UintVar(&renamecmd.jobs, "jobs", 1, "parallel job number")
+	cmd.Flags().BoolVar(&renamecmd.showProgress, "show-progress", true, "show progress-bar")
 	return cmd
 }
 
 type rename struct {
 	*baseCmd
-	from string
-	to   string
-	jobs uint
+	from         string
+	to           string
+	jobs         uint
+	showProgress bool
 }
 
 func (o *rename) run(cmd *cobra.Command, args []string) {
@@ -51,6 +55,13 @@ func (o *rename) run(cmd *cobra.Command, args []string) {
 		o.jobs = 1
 	}
 
+	progress := pb.New(len(paths))
+	progress.Output = o.stderr
+	if !o.showProgress {
+		progress.Output = ioutil.Discard
+	}
+	progress.Start()
+
 	threads := pool.NewLimited(o.jobs)
 	defer threads.Close()
 
@@ -63,6 +74,7 @@ func (o *rename) run(cmd *cobra.Command, args []string) {
 				if wu.IsCancelled() {
 					return nil, nil
 				}
+				progress.Increment()
 				err := o.execute(filepath)
 				return nil, err
 			})
@@ -76,6 +88,7 @@ func (o *rename) run(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(o.stderr, err)
 		}
 	}
+	progress.Finish()
 }
 
 func (o *rename) execute(filepath string) error {

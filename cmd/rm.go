@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
+	"gopkg.in/cheggaaa/pb.v1"
 	"gopkg.in/go-playground/pool.v3"
 )
 
@@ -23,12 +25,14 @@ func newRmCmd(params *cmdParams) *cobra.Command {
 	}
 
 	cmd.Flags().UintVar(&rmcmd.jobs, "jobs", 1, "parallel job number")
+	cmd.Flags().BoolVar(&rmcmd.showProgress, "show-progress", true, "show progress-bar")
 	return cmd
 }
 
 type rm struct {
 	*baseCmd
-	jobs uint
+	jobs         uint
+	showProgress bool
 }
 
 func (o *rm) run(cmd *cobra.Command, args []string) {
@@ -46,6 +50,13 @@ func (o *rm) run(cmd *cobra.Command, args []string) {
 		o.jobs = 1
 	}
 
+	progress := pb.New(len(paths))
+	progress.Output = o.stderr
+	if !o.showProgress {
+		progress.Output = ioutil.Discard
+	}
+	progress.Start()
+
 	threads := pool.NewLimited(o.jobs)
 	defer threads.Close()
 
@@ -58,6 +69,7 @@ func (o *rm) run(cmd *cobra.Command, args []string) {
 				if wu.IsCancelled() {
 					return nil, nil
 				}
+				progress.Increment()
 				err := o.execute(filepath)
 				return nil, err
 			})
@@ -71,6 +83,7 @@ func (o *rm) run(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(o.stderr, err)
 		}
 	}
+	progress.Finish()
 }
 
 func (o *rm) execute(filepath string) error {

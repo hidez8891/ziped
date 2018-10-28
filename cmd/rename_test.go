@@ -23,6 +23,7 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 				".txt",
 				"--to",
 				".md",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -40,6 +41,7 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 				"text",
 				"--to",
 				"texttext",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -59,6 +61,7 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 				".txt",
 				"--to",
 				".md",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -78,6 +81,7 @@ func TestRenameExecuteOverwrite(t *testing.T) {
 				".txt",
 				"--to",
 				".md",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -119,6 +123,7 @@ func TestRenameParallelExecute(t *testing.T) {
 				"--to",
 				".md",
 				"--jobs=2",
+				"--show-progress=false",
 			},
 			contents: map[string][]string{
 				"../testcase/test.zip": []string{

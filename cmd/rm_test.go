@@ -21,6 +21,7 @@ func TestRmExecuteOverwrite(t *testing.T) {
 				"--overwrite",
 				"--filter",
 				"text1.txt",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -35,6 +36,7 @@ func TestRmExecuteOverwrite(t *testing.T) {
 				"--overwrite",
 				"--filter",
 				"*.txt",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -49,6 +51,7 @@ func TestRmExecuteOverwrite(t *testing.T) {
 				"--overwrite",
 				"--regexp",
 				"\\d.txt",
+				"--show-progress=false",
 			},
 			contents: []string{
 				"dir/",
@@ -85,6 +88,7 @@ func TestRmParallelExecute(t *testing.T) {
 				"--filter",
 				"*.txt",
 				"--jobs=2",
+				"--show-progress=false",
 			},
 			contents: map[string][]string{
 				"../testcase/test.zip": []string{
@@ -136,6 +140,7 @@ func TestRmNotModified(t *testing.T) {
 		"--overwrite",
 		"--filter",
 		"dummy",
+		"--show-progress=false",
 	}
 
 	tmpname, err := copyTempFile(testfile)
