@@ -10,6 +10,7 @@ import (
 func newRmCmd(params *cmdParams) *cobra.Command {
 	rmcmd := &rm{
 		baseCmd: &baseCmd{params},
+		pexe:    &toolParallelCmd{writer: params.stdout},
 	}
 
 	var cmd = &cobra.Command{
@@ -21,11 +22,13 @@ func newRmCmd(params *cmdParams) *cobra.Command {
 		},
 	}
 
+	rmcmd.pexe.setFlags(cmd)
 	return cmd
 }
 
 type rm struct {
 	*baseCmd
+	pexe *toolParallelCmd
 }
 
 func (o *rm) run(cmd *cobra.Command, args []string) {
@@ -39,12 +42,18 @@ func (o *rm) run(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(o.stderr, err.Error())
 		return
 	}
+	if err := o.pexe.flagValidate(); err != nil {
+		fmt.Fprintln(o.stderr, err.Error())
+		return
+	}
 
-	for _, filepath := range paths {
-		err := o.execute(filepath)
-		if err != nil {
-			fmt.Fprintln(o.stderr, err)
-			return
+	errors := o.pexe.execute(paths, func(filepath string) error {
+		return o.execute(filepath)
+	})
+
+	if errors != nil {
+		for _, err := range errors {
+			fmt.Fprintln(o.stderr, err.Error())
 		}
 	}
 }

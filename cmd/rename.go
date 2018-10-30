@@ -11,6 +11,7 @@ import (
 func newRenameCmd(params *cmdParams) *cobra.Command {
 	renamecmd := &rename{
 		baseCmd: &baseCmd{params},
+		pexe:    &toolParallelCmd{writer: params.stdout},
 	}
 
 	var cmd = &cobra.Command{
@@ -24,11 +25,13 @@ func newRenameCmd(params *cmdParams) *cobra.Command {
 
 	cmd.Flags().StringVar(&renamecmd.from, "from", "", "text before replacement")
 	cmd.Flags().StringVar(&renamecmd.to, "to", "", "text after replacement")
+	renamecmd.pexe.setFlags(cmd)
 	return cmd
 }
 
 type rename struct {
 	*baseCmd
+	pexe *toolParallelCmd
 	from string
 	to   string
 }
@@ -44,12 +47,18 @@ func (o *rename) run(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(o.stderr, err.Error())
 		return
 	}
+	if err := o.pexe.flagValidate(); err != nil {
+		fmt.Fprintln(o.stderr, err.Error())
+		return
+	}
 
-	for _, filepath := range paths {
-		err := o.execute(filepath)
-		if err != nil {
-			fmt.Fprintln(o.stderr, err)
-			return
+	errors := o.pexe.execute(paths, func(filepath string) error {
+		return o.execute(filepath)
+	})
+
+	if errors != nil {
+		for _, err := range errors {
+			fmt.Fprintln(o.stderr, err.Error())
 		}
 	}
 }

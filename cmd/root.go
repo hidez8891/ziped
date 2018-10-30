@@ -12,6 +12,8 @@ import (
 	"github.com/bmatcuk/doublestar"
 	"github.com/hidez8891/zip"
 	"github.com/spf13/cobra"
+	"gopkg.in/cheggaaa/pb.v1"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 const usageTemplate = `
@@ -226,6 +228,67 @@ func (o *baseCmd) editZipFile(filepath string, editor func(*zip.Updater) (bool, 
 	}
 
 	return nil
+}
+
+type toolParallelCmd struct {
+	writer       io.Writer
+	jobs         uint
+	showProgress bool
+}
+
+func (o *toolParallelCmd) setFlags(cmd *cobra.Command) {
+	cmd.Flags().UintVar(&o.jobs, "jobs", 1, "parallel job number")
+	cmd.Flags().BoolVar(&o.showProgress, "show-progress", true, "show progress-bar")
+}
+
+func (o *toolParallelCmd) flagValidate() error {
+	if o.jobs < 1 {
+		o.jobs = 1
+	}
+	return nil
+}
+
+func (o *toolParallelCmd) execute(paths []string, executer func(string) error) []error {
+	progress := pb.New(len(paths))
+	progress.Output = o.writer
+	if !o.showProgress {
+		progress.Output = ioutil.Discard
+	}
+	progress.Start()
+
+	threads := pool.NewLimited(o.jobs)
+	defer threads.Close()
+
+	worker := threads.Batch()
+	go func() {
+		for _, filepath := range paths {
+			filepath := filepath
+
+			worker.Queue(func(wu pool.WorkUnit) (interface{}, error) {
+				if wu.IsCancelled() {
+					return nil, nil
+				}
+				progress.Increment()
+				err := executer(filepath)
+				return nil, err
+			})
+		}
+		worker.QueueComplete()
+	}()
+
+	errors := make([]error, 0)
+	for result := range worker.Results() {
+		if err := result.Error(); err != nil {
+			worker.Cancel()
+			errors = append(errors, err)
+		}
+	}
+	progress.Finish()
+
+	if len(errors) == 0 {
+		return nil
+	}
+	return errors
 }
 
 func close(closer io.Closer) error {
