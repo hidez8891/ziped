@@ -9,9 +9,9 @@ import (
 func main() {
 	cmd := cmd.NewCmd()
 
-	cmd.Use = _Name
-	cmd.Short = _Description
-	cmd.Version = _Version
+	cmd.Use = name
+	cmd.Short = description
+	cmd.Version = version
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
