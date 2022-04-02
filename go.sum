@@ -1,2 +1,6 @@
 github.com/MakeNowJust/heredoc/v2 v2.0.1 h1:rlCHh70XXXv7toz95ajQWOWQnN4WNLt0TdpZYIR/J6A=
 github.com/MakeNowJust/heredoc/v2 v2.0.1/go.mod h1:6/2Abh5s+hc3g9nbWLe9ObDIOhaRrqsyY9MWy+4JdRM=
+github.com/hidez8891/zip v1.0.0-go1.11 h1:qYZiSabCMUlXZSKQKXDx2QmnuVsAWEUs900Jnr0V/iw=
+github.com/hidez8891/zip v1.0.0-go1.11/go.mod h1:grxs86bi3+r7VnVZF4dDtIhvbpEiaUfd+AECQ/D7L0g=
+golang.org/x/text v0.3.7 h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
+golang.org/x/text v0.3.7/go.mod h1:u+2+/6zg+i71rQMx5EYifcz6MCKuco9NR6JIITiCfzQ=
