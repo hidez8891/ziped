@@ -22,7 +22,7 @@ var (
 	opts options
 
 	cmds = map[string]cmd.Command{
-		"ls": cmd_list.NewCommand(),
+		"ls": cmd_list.NewCommand("ziped ls"),
 	}
 )
 
@@ -61,7 +61,7 @@ func usage(writer io.Writer, cmd, version string) {
 func main() {
 	flags := flag.NewFlagSet("ziped", flag.ExitOnError)
 	flags.Usage = func() {
-		usage(flags.Output(), "ziped", "0.0.0-dev")
+		usage(flags.Output(), flags.Name(), "0.0.0-dev")
 	}
 
 	xargs := slices.Split(os.Args[1:], "--")
@@ -74,58 +74,103 @@ func main() {
 		os.Exit(1)
 	}
 
-	files := flags.Args()
+	var subcmds []cmd.Command
+	var files []string
+
 	if !multiCommandMode {
-		if len(files) < 2 {
-			fmt.Fprintln(os.Stderr, "No file specified")
+		args := flags.Args()
+		subcmd, err := parseSingleCommandMode(args[0], args[1:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
-		cmd, files := files[0], files[1:]
-		singleCommandRun(cmd, files)
+		subcmds = []cmd.Command{subcmd}
+		files = subcmd.Flags().Args()
 	} else {
-		if len(files) < 1 {
-			fmt.Fprintln(os.Stderr, "No file specified")
+		var err error
+		subcmds, err = parseMultiCommandMode(xargs[1:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
-		multiCommandRun(xargs[1:], files)
+		files = flags.Args()
+	}
+
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "No file specified")
+		os.Exit(1)
+	}
+
+	for _, file := range files {
+		if err := runSubcommands(subcmds, file); err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
 	}
 }
 
-func singleCommandRun(cmd string, files []string) {
-	runner, ok := cmds[cmd]
+func parseSingleCommandMode(subcmd string, args []string) (cmd.Command, error) {
+	exec, ok := cmds[subcmd]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Undefined command: %s\n", cmd)
-		os.Exit(1)
+		return nil, fmt.Errorf("Undefined command: %s", subcmd)
 	}
 
-	st, err := os.Stat(files[0])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	if err := exec.Flags().Parse(args); err != nil {
+		return nil, err
 	}
 
-	f, err := os.Open(files[0])
+	return exec, nil
+}
+
+func parseMultiCommandMode(xargs [][]string) ([]cmd.Command, error) {
+	subcmds := make([]cmd.Command, 0)
+
+	for _, args := range xargs {
+		subcmd, args := args[0], args[1:]
+
+		exec, ok := cmds[subcmd]
+		if !ok {
+			return nil, fmt.Errorf("Undefined command: %s", subcmd)
+		}
+
+		if err := exec.Flags().Parse(args); err != nil {
+			return nil, err
+		}
+		if exec.Flags().NArg() != 0 {
+			return nil, fmt.Errorf("Undefined option: %s", exec.Flags().Arg(0))
+		}
+
+		subcmds = append(subcmds, exec)
+	}
+
+	return subcmds, nil
+}
+
+func runSubcommands(subcmds []cmd.Command, file string) error {
+	st, err := os.Stat(file)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return err
 	}
 	defer f.Close()
 
 	u, err := zip.NewUpdater(f, st.Size())
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
 	defer u.Close()
 
-	if err := runner.Run(u); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	for _, subcmd := range subcmds {
+		if err := subcmd.Run(u); err != nil {
+			return err
+		}
 	}
-}
 
-func multiCommandRun(xargs [][]string, files []string) {
-	// TODO
+	return nil
 }
