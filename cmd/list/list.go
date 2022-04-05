@@ -36,8 +36,8 @@ func usage(writer io.Writer, cmd string) {
 	fmt.Fprintln(writer, tmpl)
 }
 
-func NewCommand(name string) *CmdList {
-	flags := flag.NewFlagSet(name, flag.ExitOnError)
+func NewCommand() *CmdList {
+	flags := flag.NewFlagSet("", flag.ExitOnError)
 	flags.Usage = func() {
 		usage(flags.Output(), flags.Name())
 	}

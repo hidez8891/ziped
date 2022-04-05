@@ -30,7 +30,7 @@ var (
 	opts options
 
 	cmds = map[string]cmd.Command{
-		"ls": cmd_list.NewCommand("ls"),
+		"ls": cmd_list.NewCommand(),
 	}
 )
 
