@@ -134,11 +134,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	for _, file := range files {
-		if err := runSubcommands(subcmds, file); err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
-		}
+	if err := runSubcommands(subcmds, files); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -179,27 +177,34 @@ func parseMultiCommandMode(xargs [][]string) ([]cmd.Command, error) {
 	return subcmds, nil
 }
 
-func runSubcommands(subcmds []cmd.Command, file string) error {
-	st, err := os.Stat(file)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	u, err := zip.NewUpdater(f, st.Size())
-	if err != nil {
-		return err
-	}
-	defer u.Close()
-
-	for _, subcmd := range subcmds {
-		if err := subcmd.Run(u); err != nil {
+func runSubcommands(subcmds []cmd.Command, files []string) error {
+	for i, file := range files {
+		st, err := os.Stat(file)
+		if err != nil {
 			return err
+		}
+
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		u, err := zip.NewUpdater(f, st.Size())
+		if err != nil {
+			return err
+		}
+		defer u.Close()
+
+		metadata := cmd.MetaData{
+			SrcPath:        file,
+			MultiInputMode: len(files) != 1,
+			IsLastFile:     i == len(files)-1,
+		}
+		for _, subcmd := range subcmds {
+			if err := subcmd.Run(u, metadata); err != nil {
+				return err
+			}
 		}
 	}
 

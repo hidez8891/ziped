@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"ziped/cmd"
+
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/hidez8891/zip"
 	"golang.org/x/text/encoding/japanese"
@@ -17,7 +19,8 @@ type options struct {
 }
 
 type CmdList struct {
-	flags *flag.FlagSet
+	flags  *flag.FlagSet
+	stdout io.Writer
 }
 
 var opts options
@@ -43,7 +46,8 @@ func NewCommand() *CmdList {
 	}
 
 	return &CmdList{
-		flags: flags,
+		flags:  flags,
+		stdout: os.Stdout,
 	}
 }
 
@@ -51,7 +55,15 @@ func (o *CmdList) Flags() *flag.FlagSet {
 	return o.flags
 }
 
-func (o *CmdList) Run(u *zip.Updater) error {
+func (o *CmdList) SetOutput(outputer io.Writer) {
+	o.stdout = outputer
+}
+
+func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) error {
+	if metadata.MultiInputMode {
+		fmt.Fprintln(o.stdout, metadata.SrcPath)
+	}
+
 	for _, zf := range u.Files() {
 		name := zf.Name
 
@@ -63,7 +75,11 @@ func (o *CmdList) Run(u *zip.Updater) error {
 			}
 		}
 
-		fmt.Fprintln(os.Stdout, name)
+		fmt.Fprintln(o.stdout, name)
+	}
+
+	if metadata.MultiInputMode && !metadata.IsLastFile {
+		fmt.Fprintln(o.stdout)
 	}
 	return nil
 }
