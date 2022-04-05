@@ -15,18 +15,26 @@ import (
 	"github.com/hidez8891/zip"
 )
 
+const (
+	NAME    = "ziped"
+	VERSION = "0.0.0-dev"
+)
+
 type options struct {
+	showVersion bool
 }
 
 var (
+	flags = flag.NewFlagSet(NAME, flag.ExitOnError)
+
 	opts options
 
 	cmds = map[string]cmd.Command{
-		"ls": cmd_list.NewCommand("ziped ls"),
+		"ls": cmd_list.NewCommand("ls"),
 	}
 )
 
-func usage(writer io.Writer, cmd, version string) {
+func usage(writer io.Writer) {
 	tmpl := heredoc.Doc(`
 		Name:
 			{:CMD:} - [{:VERSION:}]
@@ -49,20 +57,38 @@ func usage(writer io.Writer, cmd, version string) {
 
 		Options:
 			-h, --help      help for {:CMD:}
-			-v, --version   version for {:CMD:}
+			    --version   version for {:CMD:}
 	`)
 
 	tmpl = strings.ReplaceAll(tmpl, "\t", "    ")
-	tmpl = strings.ReplaceAll(tmpl, "{:CMD:}", cmd)
-	tmpl = strings.ReplaceAll(tmpl, "{:VERSION:}", version)
+	tmpl = strings.ReplaceAll(tmpl, "{:CMD:}", NAME)
+	tmpl = strings.ReplaceAll(tmpl, "{:VERSION:}", VERSION)
 	fmt.Fprintln(writer, tmpl)
 }
 
-func main() {
-	flags := flag.NewFlagSet("ziped", flag.ExitOnError)
+func showVersion(writer io.Writer) {
+	tmpl := fmt.Sprintf("%s %s", NAME, VERSION)
+	fmt.Fprintln(writer, tmpl)
+}
+
+func setupFlags() {
 	flags.Usage = func() {
-		usage(flags.Output(), flags.Name(), "0.0.0-dev")
+		usage(flags.Output())
 	}
+
+	flags.BoolVar(&opts.showVersion, "version", false, "")
+}
+
+func setupSubcommands() {
+	for tag, subcmd := range cmds {
+		subcmdName := fmt.Sprintf("%s %s", NAME, tag)
+		subcmd.Flags().Init(subcmdName, flag.ContinueOnError)
+	}
+}
+
+func main() {
+	setupFlags()
+	setupSubcommands()
 
 	xargs := slices.Split(os.Args[1:], "--")
 	multiCommandMode := len(xargs) != 1
@@ -72,6 +98,11 @@ func main() {
 			os.Exit(0)
 		}
 		os.Exit(1)
+	}
+
+	if opts.showVersion {
+		showVersion(flags.Output())
+		os.Exit(0)
 	}
 
 	var subcmds []cmd.Command
