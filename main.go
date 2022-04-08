@@ -21,6 +21,8 @@ const (
 )
 
 type options struct {
+	outputPath  string
+	overwrite   bool
 	showVersion bool
 }
 
@@ -52,8 +54,10 @@ func usage(writer io.Writer) {
 			rm         Remove file
 
 		Options:
-			-h, --help      help for {:CMD:}
-			    --version   version for {:CMD:}
+			-h, --help         help for {:CMD:}
+				--output PATH  save to PATH file (only use single command mode)
+			    --overwrite    overwrite to source file
+			    --version      version for {:CMD:}
 	`)
 
 	tmpl = strings.ReplaceAll(tmpl, "\t", "    ")
@@ -73,6 +77,8 @@ func setupFlags() {
 		usage(flags.Output())
 	}
 
+	flags.StringVar(&opts.outputPath, "output", "", "")
+	flags.BoolVar(&opts.overwrite, "overwrite", false, "")
 	flags.BoolVar(&opts.showVersion, "version", false, "")
 }
 
@@ -208,10 +214,19 @@ func runSubcommands(subcmds []cmd.Command, files []string) error {
 			MultiInputMode: len(files) != 1,
 			IsLastFile:     i == len(files)-1,
 		}
+		state := cmd.ResultNotUpdated
+
 		for _, subcmd := range subcmds {
-			if err := subcmd.Run(u, metadata); err != nil {
+			var err error
+
+			state, err = subcmd.Run(u, metadata)
+			if err != nil {
 				return err
 			}
+		}
+
+		if state == cmd.ResultUpdated {
+			//TODO
 		}
 	}
 

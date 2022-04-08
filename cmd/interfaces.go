@@ -7,6 +7,14 @@ import (
 	"github.com/hidez8891/zip"
 )
 
+type ResultState string
+
+const (
+	ResultError      ResultState = "Error"
+	ResultNotUpdated ResultState = "Not Updated"
+	ResultUpdated    ResultState = "Updated"
+)
+
 type MetaData struct {
 	SrcPath        string
 	MultiInputMode bool
@@ -21,7 +29,7 @@ type CommandIO struct {
 
 type Command interface {
 	Flags() *flag.FlagSet
-	Run(*zip.Updater, MetaData) error
+	Run(*zip.Updater, MetaData) (ResultState, error)
 	SetCmdIO(CommandIO)
 	SetName(string)
 }

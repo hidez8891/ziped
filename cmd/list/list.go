@@ -66,7 +66,7 @@ func (o *CmdList) SetName(name string) {
 	o.flags.Init(name, o.flags.ErrorHandling())
 }
 
-func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) error {
+func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) (cmd.ResultState, error) {
 	if metadata.MultiInputMode {
 		fmt.Fprintln(o.Out, metadata.SrcPath)
 	}
@@ -88,5 +88,5 @@ func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) error {
 	if metadata.MultiInputMode && !metadata.IsLastFile {
 		fmt.Fprintln(o.Out)
 	}
-	return nil
+	return cmd.ResultNotUpdated, nil
 }
