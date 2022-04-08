@@ -25,13 +25,9 @@ type options struct {
 }
 
 var (
-	flags = flag.NewFlagSet(NAME, flag.ExitOnError)
-
-	opts options
-
-	cmds = map[string]cmd.Command{
-		"ls": cmd_list.NewCommand(),
-	}
+	cmds  map[string]cmd.Command
+	flags *flag.FlagSet
+	opts  options
 )
 
 func usage(writer io.Writer) {
@@ -72,6 +68,7 @@ func showVersion(writer io.Writer) {
 }
 
 func setupFlags() {
+	flags = flag.NewFlagSet(NAME, flag.ExitOnError)
 	flags.Usage = func() {
 		usage(flags.Output())
 	}
@@ -80,9 +77,19 @@ func setupFlags() {
 }
 
 func setupSubcommands() {
+	cmdIO := cmd.CommandIO{
+		In:  os.Stdin,
+		Out: os.Stdout,
+		Err: os.Stderr,
+	}
+
+	cmds = map[string]cmd.Command{
+		"ls": cmd_list.NewCommand("", cmdIO),
+	}
+
 	for tag, subcmd := range cmds {
 		subcmdName := fmt.Sprintf("%s %s", NAME, tag)
-		subcmd.Flags().Init(subcmdName, flag.ContinueOnError)
+		subcmd.SetName(subcmdName)
 	}
 }
 

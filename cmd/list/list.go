@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"ziped/cmd"
@@ -19,11 +18,10 @@ type options struct {
 }
 
 type CmdList struct {
-	flags  *flag.FlagSet
-	stdout io.Writer
+	cmd.CommandIO
+	flags *flag.FlagSet
+	opts  options
 }
-
-var opts options
 
 func usage(writer io.Writer, cmd string) {
 	tmpl := heredoc.Doc(`
@@ -39,15 +37,19 @@ func usage(writer io.Writer, cmd string) {
 	fmt.Fprintln(writer, tmpl)
 }
 
-func NewCommand() *CmdList {
-	flags := flag.NewFlagSet("", flag.ExitOnError)
+func NewCommand(name string, cmdIO cmd.CommandIO) *CmdList {
+	var opts options
+
+	flags := flag.NewFlagSet(name, flag.ExitOnError)
 	flags.Usage = func() {
 		usage(flags.Output(), flags.Name())
 	}
+	flags.SetOutput(cmdIO.Err)
 
 	return &CmdList{
-		flags:  flags,
-		stdout: os.Stdout,
+		CommandIO: cmdIO,
+		flags:     flags,
+		opts:      opts,
 	}
 }
 
@@ -55,13 +57,18 @@ func (o *CmdList) Flags() *flag.FlagSet {
 	return o.flags
 }
 
-func (o *CmdList) SetOutput(outputer io.Writer) {
-	o.stdout = outputer
+func (o *CmdList) SetCmdIO(cmdio cmd.CommandIO) {
+	o.CommandIO = cmdio
+	o.flags.SetOutput(cmdio.Err)
+}
+
+func (o *CmdList) SetName(name string) {
+	o.flags.Init(name, o.flags.ErrorHandling())
 }
 
 func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) error {
 	if metadata.MultiInputMode {
-		fmt.Fprintln(o.stdout, metadata.SrcPath)
+		fmt.Fprintln(o.Out, metadata.SrcPath)
 	}
 
 	for _, zf := range u.Files() {
@@ -75,11 +82,11 @@ func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) error {
 			}
 		}
 
-		fmt.Fprintln(o.stdout, name)
+		fmt.Fprintln(o.Out, name)
 	}
 
 	if metadata.MultiInputMode && !metadata.IsLastFile {
-		fmt.Fprintln(o.stdout)
+		fmt.Fprintln(o.Out)
 	}
 	return nil
 }

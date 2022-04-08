@@ -13,8 +13,15 @@ type MetaData struct {
 	IsLastFile     bool
 }
 
+type CommandIO struct {
+	In  io.Reader
+	Out io.Writer
+	Err io.Writer
+}
+
 type Command interface {
 	Flags() *flag.FlagSet
-	SetOutput(io.Writer)
 	Run(*zip.Updater, MetaData) error
+	SetCmdIO(CommandIO)
+	SetName(string)
 }
