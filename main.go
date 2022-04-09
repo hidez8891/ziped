@@ -4,11 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"ziped/cmd"
 	cmd_list "ziped/cmd/list"
+	cmd_rename "ziped/cmd/rename"
 	"ziped/pkg/slices"
 
 	"github.com/MakeNowJust/heredoc/v2"
@@ -90,7 +93,8 @@ func setupSubcommands() {
 	}
 
 	cmds = map[string]cmd.Command{
-		"ls": cmd_list.NewCommand("", cmdIO),
+		"ls":     cmd_list.NewCommand("", cmdIO),
+		"rename": cmd_rename.NewCommand("", cmdIO),
 	}
 
 	for tag, subcmd := range cmds {
@@ -198,27 +202,51 @@ func runSubcommands(subcmds []cmd.Command, files []string) error {
 			IsLastFile:     i == len(files)-1,
 		}
 
-		runSubcommandsImpl(subcmds, file, metadata)
+		outpath, err := runSubcommandsImpl(subcmds, file, metadata)
+		if err != nil {
+			return err
+		}
+
+		if outpath != "" && opts.overwrite {
+			outdir := filepath.Dir(outpath)
+
+			swapfile, err := os.CreateTemp(outdir, "tmpswap_")
+			if err != nil {
+				return err
+			}
+			swapname := swapfile.Name()
+			swapfile.Close()
+
+			if err := os.Rename(file, swapname); err != nil {
+				return err
+			}
+			if err := os.Rename(outpath, file); err != nil {
+				return err
+			}
+			if err := os.Remove(swapname); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
 }
 
-func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaData) error {
+func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaData) (string, error) {
 	st, err := os.Stat(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	f, err := os.Open(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
 	u, err := zip.NewUpdater(f, st.Size())
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer u.Close()
 
@@ -229,13 +257,38 @@ func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaDat
 
 		state, err = subcmd.Run(u, metadata)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	if state == cmd.ResultUpdated {
-		//TODO
+	if state != cmd.ResultUpdated {
+		return file, nil
 	}
 
-	return nil
+	var tmpfile *os.File
+	if len(opts.outputPath) > 0 && len(subcmds) == 1 {
+		var err error
+		if tmpfile, err = os.Create(opts.outputPath); err != nil {
+			return "", err
+		}
+	} else if opts.overwrite {
+		abspath, err := filepath.Abs(file)
+		if err != nil {
+			return "", err
+		}
+		basedir := filepath.Dir(abspath)
+
+		tmpfile, err = ioutil.TempFile(basedir, "tmp")
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", fmt.Errorf("output path or overwrite permissions not set")
+	}
+	defer tmpfile.Close()
+
+	if err := u.SaveAs(tmpfile); err != nil {
+		return "", err
+	}
+	return tmpfile.Name(), nil
 }
