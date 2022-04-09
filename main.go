@@ -192,42 +192,49 @@ func parseMultiCommandMode(xargs [][]string) ([]cmd.Command, error) {
 
 func runSubcommands(subcmds []cmd.Command, files []string) error {
 	for i, file := range files {
-		st, err := os.Stat(file)
-		if err != nil {
-			return err
-		}
-
-		f, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		u, err := zip.NewUpdater(f, st.Size())
-		if err != nil {
-			return err
-		}
-		defer u.Close()
-
 		metadata := cmd.MetaData{
 			SrcPath:        file,
 			MultiInputMode: len(files) != 1,
 			IsLastFile:     i == len(files)-1,
 		}
-		state := cmd.ResultNotUpdated
 
-		for _, subcmd := range subcmds {
-			var err error
+		runSubcommandsImpl(subcmds, file, metadata)
+	}
 
-			state, err = subcmd.Run(u, metadata)
-			if err != nil {
-				return err
-			}
+	return nil
+}
+
+func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaData) error {
+	st, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	u, err := zip.NewUpdater(f, st.Size())
+	if err != nil {
+		return err
+	}
+	defer u.Close()
+
+	state := cmd.ResultNotUpdated
+
+	for _, subcmd := range subcmds {
+		var err error
+
+		state, err = subcmd.Run(u, metadata)
+		if err != nil {
+			return err
 		}
+	}
 
-		if state == cmd.ResultUpdated {
-			//TODO
-		}
+	if state == cmd.ResultUpdated {
+		//TODO
 	}
 
 	return nil
