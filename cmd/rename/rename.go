@@ -17,7 +17,7 @@ type options struct {
 	to   string
 }
 
-type CmdList struct {
+type CmdRename struct {
 	cmd.CommandIO
 	flags *flag.FlagSet
 	opts  options
@@ -39,7 +39,7 @@ func usage(writer io.Writer, cmd string) {
 	fmt.Fprintln(writer, tmpl)
 }
 
-func NewCommand(name string, cmdIO cmd.CommandIO) *CmdList {
+func NewCommand(name string, cmdIO cmd.CommandIO) *CmdRename {
 	var opts options
 
 	flags := flag.NewFlagSet(name, flag.ExitOnError)
@@ -48,7 +48,7 @@ func NewCommand(name string, cmdIO cmd.CommandIO) *CmdList {
 	}
 	flags.SetOutput(cmdIO.Err)
 
-	c := &CmdList{
+	c := &CmdRename{
 		CommandIO: cmdIO,
 		flags:     flags,
 		opts:      opts,
@@ -58,23 +58,22 @@ func NewCommand(name string, cmdIO cmd.CommandIO) *CmdList {
 	flags.StringVar(&c.opts.to, "to", "", "")
 
 	return c
-
 }
 
-func (o *CmdList) Flags() *flag.FlagSet {
+func (o *CmdRename) Flags() *flag.FlagSet {
 	return o.flags
 }
 
-func (o *CmdList) SetCmdIO(cmdio cmd.CommandIO) {
+func (o *CmdRename) SetCmdIO(cmdio cmd.CommandIO) {
 	o.CommandIO = cmdio
 	o.flags.SetOutput(cmdio.Err)
 }
 
-func (o *CmdList) SetName(name string) {
+func (o *CmdRename) SetName(name string) {
 	o.flags.Init(name, o.flags.ErrorHandling())
 }
 
-func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) (cmd.ResultState, error) {
+func (o *CmdRename) Run(u *zip.Updater, metadata cmd.MetaData) (cmd.ResultState, error) {
 	modified := false
 
 	for _, zf := range u.Files() {
