@@ -51,8 +51,7 @@ func usage(writer io.Writer) {
 					...
 
 		Commands:
-			convert    Convert file contents
-			ls         Show file list
+			list       Show file list
 			rename     Rename file name
 			remove     Remove file
 
@@ -93,7 +92,7 @@ func setupSubcommands() {
 	}
 
 	cmds = map[string]cmd.Command{
-		"ls":     cmd_list.NewCommand("", cmdIO),
+		"list":   cmd_list.NewCommand("", cmdIO),
 		"rename": cmd_rename.NewCommand("", cmdIO),
 		"remove": cmd_remove.NewCommand("", cmdIO),
 	}
