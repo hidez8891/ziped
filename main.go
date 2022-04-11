@@ -10,6 +10,7 @@ import (
 
 	"ziped/cmd"
 	cmd_list "ziped/cmd/list"
+	cmd_remove "ziped/cmd/remove"
 	cmd_rename "ziped/cmd/rename"
 	"ziped/pkg/slices"
 
@@ -53,7 +54,7 @@ func usage(writer io.Writer) {
 			convert    Convert file contents
 			ls         Show file list
 			rename     Rename file name
-			rm         Remove file
+			remove     Remove file
 
 		Options:
 			-h, --help         help for {:CMD:}
@@ -94,6 +95,7 @@ func setupSubcommands() {
 	cmds = map[string]cmd.Command{
 		"ls":     cmd_list.NewCommand("", cmdIO),
 		"rename": cmd_rename.NewCommand("", cmdIO),
+		"remove": cmd_remove.NewCommand("", cmdIO),
 	}
 
 	for tag, subcmd := range cmds {
