@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -202,13 +201,13 @@ func runSubcommands(subcmds []cmd.Command, files []string) error {
 			IsLastFile:     i == len(files)-1,
 		}
 
-		outpath, err := runSubcommandsImpl(subcmds, file, metadata)
+		tmppath, err := runSubcommandsImpl(subcmds, file, metadata)
 		if err != nil {
 			return err
 		}
 
-		if outpath != "" && opts.overwrite {
-			outdir := filepath.Dir(outpath)
+		if tmppath != "" && opts.overwrite {
+			outdir := filepath.Dir(tmppath)
 
 			swapfile, err := os.CreateTemp(outdir, "tmpswap_")
 			if err != nil {
@@ -220,7 +219,7 @@ func runSubcommands(subcmds []cmd.Command, files []string) error {
 			if err := os.Rename(file, swapname); err != nil {
 				return err
 			}
-			if err := os.Rename(outpath, file); err != nil {
+			if err := os.Rename(tmppath, file); err != nil {
 				return err
 			}
 			if err := os.Remove(swapname); err != nil {
@@ -262,7 +261,7 @@ func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaDat
 	}
 
 	if state != cmd.ResultUpdated {
-		return file, nil
+		return "", nil
 	}
 
 	var tmpfile *os.File
@@ -278,7 +277,7 @@ func runSubcommandsImpl(subcmds []cmd.Command, file string, metadata cmd.MetaDat
 		}
 		basedir := filepath.Dir(abspath)
 
-		tmpfile, err = ioutil.TempFile(basedir, "tmp")
+		tmpfile, err = os.CreateTemp(basedir, "tmp")
 		if err != nil {
 			return "", err
 		}

@@ -77,12 +77,10 @@ func (o *CmdList) SetName(name string) {
 func (o *CmdList) Run(u *zip.Updater, metadata cmd.MetaData) (cmd.ResultState, error) {
 	modified := false
 
-	fmt.Printf("%s - %s\n", o.opts.from, o.opts.to)
 	for _, zf := range u.Files() {
 		oldname := zf.Name
 		newname := strings.Replace(oldname, o.opts.from, o.opts.to, 1)
 
-		fmt.Printf("%s - %s\n", oldname, newname)
 		if oldname == newname {
 			continue
 		}
