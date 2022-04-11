@@ -76,6 +76,13 @@ func (o *CmdRename) SetName(name string) {
 func (o *CmdRename) Run(u *zip.Updater, metadata cmd.MetaData) (cmd.ResultState, error) {
 	modified := false
 
+	if o.opts.from == "" {
+		return cmd.ResultError, fmt.Errorf("required parameter 'from' not set")
+	}
+	if o.opts.to == "" {
+		return cmd.ResultError, fmt.Errorf("required parameter 'to' not set")
+	}
+
 	for _, zf := range u.Files() {
 		oldname := zf.Name
 		newname := strings.Replace(oldname, o.opts.from, o.opts.to, 1)
