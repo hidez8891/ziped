@@ -31,15 +31,17 @@ impl CliParser {
     #[rustfmt::skip]
     pub fn usage() -> ! {
         println!(
-r#"Usage: ziped <COMMAND> <PATH>...
+r#"Usage: ziped [OPTION] <COMMAND> <PATH>...
+
+Options:
+  -h, --help     Print this message
+  -v, --version  Print version
 
 Commands:
-  ls       List files in zip archive
-  help     Print this message
-  version  Print version
+  ls    List files in zip archive
 
 Arguments:
-  PATH     Path to zip archive(s)
+  PATH  Path to zip archive(s)
 "#
         );
         exit(0)
@@ -62,18 +64,9 @@ Arguments:
                     // subcommand: ls
                     commands.push(self.parse_ls());
                 }
-                "help" => {
-                    // subcommand: help
-                    Self::usage();
-                }
-                "version" => {
-                    // subcommand: version
-                    Self::version();
-                }
                 opt if opt.starts_with("-") => {
                     // global option
-                    eprintln!("Unknown option: {}", arg);
-                    exit(1);
+                    self.parse_global_option();
                 }
                 path if path.ends_with(".zip") => {
                     // positional argument
@@ -97,6 +90,23 @@ Arguments:
         }
 
         Cli { commands, paths }
+    }
+
+    fn parse_global_option(&mut self) -> ! {
+        let arg = &self.args[self.index];
+
+        match arg.as_str() {
+            "-h" | "--help" => {
+                Self::usage();
+            }
+            "-v" | "--version" => {
+                Self::version();
+            }
+            _ => {
+                eprintln!("Unknown option: {}", arg);
+                exit(1);
+            }
+        }
     }
 
     fn parse_ls(&mut self) -> Commands {
