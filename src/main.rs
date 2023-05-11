@@ -1,31 +1,106 @@
-use clap::{Parser, Subcommand};
 use glob::glob;
-use std::{error::Error, fs::File};
+use std::{env, error::Error, fs::File, process::exit};
 use zip;
 
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
 struct Cli {
-    #[command(subcommand)]
-    command: Commands,
+    commands: Vec<Commands>,
+    paths: Vec<String>,
 }
 
-#[derive(Subcommand)]
+struct CliParser {
+    args: Vec<String>,
+    index: usize,
+}
+
+impl CliParser {
+    pub fn parse() -> Cli {
+        let args = env::args().collect::<Vec<String>>();
+
+        if args.len() < 2 {
+            Self::usage();
+        }
+
+        let mut parser = CliParser {
+            args,
+            index: 1, // skip program name
+        };
+
+        parser.parse_()
+    }
+
+    #[rustfmt::skip]
+    pub fn usage() -> ! {
+        println!(
+r#"Usage: ziped <COMMAND> <PATH>...
+
+Commands:
+  ls     List files in zip archive
+  help   Print this message
+
+Arguments:
+  PATH   Path to zip archive(s)
+"#
+        );
+        exit(0)
+    }
+
+    fn parse_(&mut self) -> Cli {
+        let mut commands = Vec::new();
+
+        while self.index < self.args.len() {
+            let arg = &self.args[self.index];
+
+            if arg == "ls" {
+                // subcommand: ls
+                commands.push(self.parse_ls());
+            } else if arg.starts_with("-") {
+                // global option
+                eprintln!("Unknown option: {}", arg);
+                exit(1);
+            } else if arg.ends_with(".zip") {
+                // positional argument
+                break;
+            } else {
+                // unknown subcommand
+                eprintln!("Unknown subcommand: {}", arg);
+                exit(1);
+            }
+        }
+
+        let paths = self.args[self.index..].to_vec();
+
+        // validate positional arguments
+        if let Some(path) = paths.iter().find(|path| path.ends_with(".zip") == false) {
+            // unknown subcommand or option
+            eprintln!("Unknown subcommand or option: {}", path);
+            exit(1);
+        }
+
+        Cli { commands, paths }
+    }
+
+    fn parse_ls(&mut self) -> Commands {
+        self.index += 1; // skip command name
+
+        Commands::List
+    }
+}
+
 enum Commands {
-    /// List zip-archive contents
-    Ls {
-        /// zip-archive path(s)
-        path: Vec<String>,
-    },
+    List,
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let cli = CliParser::parse();
 
-    match &cli.command {
-        Commands::Ls { path } => {
-            let path = expand_wildcard_path(path).expect("Failed to read path");
-            for filepath in path.iter() {
+    if cli.commands.is_empty() || cli.paths.is_empty() {
+        CliParser::usage();
+    }
+
+    match &cli.commands[0] {
+        Commands::List => {
+            let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
+            for filepath in paths.iter() {
                 exec_list(filepath).expect("Failed to read zip-archive");
             }
         }
