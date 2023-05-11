@@ -111,9 +111,13 @@ fn expand_wildcard_path(path: &Vec<String>) -> Result<Vec<String>, Box<dyn Error
     let mut expand = Vec::new();
 
     for pattern in path {
-        for entry in glob(pattern)? {
-            let path = entry?;
-            expand.push(path.to_str().unwrap().to_string());
+        if pattern.contains("*") {
+            for entry in glob(pattern)? {
+                let path = entry?;
+                expand.push(path.to_str().unwrap().to_string());
+            }
+        } else {
+            expand.push(pattern.clone());
         }
     }
 
