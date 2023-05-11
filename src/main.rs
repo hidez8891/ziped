@@ -53,6 +53,9 @@ Arguments:
             if arg == "ls" {
                 // subcommand: ls
                 commands.push(self.parse_ls());
+            } else if arg == "help" {
+                // subcommand: help
+                Self::usage();
             } else if arg.starts_with("-") {
                 // global option
                 eprintln!("Unknown option: {}", arg);
