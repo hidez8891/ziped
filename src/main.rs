@@ -50,23 +50,29 @@ Arguments:
         while self.index < self.args.len() {
             let arg = &self.args[self.index];
 
-            if arg == "ls" {
-                // subcommand: ls
-                commands.push(self.parse_ls());
-            } else if arg == "help" {
-                // subcommand: help
-                Self::usage();
-            } else if arg.starts_with("-") {
-                // global option
-                eprintln!("Unknown option: {}", arg);
-                exit(1);
-            } else if arg.ends_with(".zip") {
-                // positional argument
-                break;
-            } else {
-                // unknown subcommand
-                eprintln!("Unknown subcommand: {}", arg);
-                exit(1);
+            match arg.as_str() {
+                "ls" => {
+                    // subcommand: ls
+                    commands.push(self.parse_ls());
+                }
+                "help" => {
+                    // subcommand: help
+                    Self::usage();
+                }
+                opt if opt.starts_with("-") => {
+                    // global option
+                    eprintln!("Unknown option: {}", arg);
+                    exit(1);
+                }
+                path if path.ends_with(".zip") => {
+                    // positional argument
+                    break;
+                }
+                _ => {
+                    // unknown subcommand
+                    eprintln!("Unknown subcommand: {}", arg);
+                    exit(1);
+                }
             }
         }
 
