@@ -1,6 +1,6 @@
-use std::fs::File;
-
 use clap::{Parser, Subcommand};
+use glob::glob;
+use std::{error::Error, fs::File};
 use zip;
 
 #[derive(Parser)]
@@ -24,14 +24,28 @@ fn main() {
 
     match &cli.command {
         Commands::Ls { path } => {
-            for filepath in path {
-                exec_list(filepath).expect("failed");
+            let path = expand_wildcard_path(path).expect("Failed to read path");
+            for filepath in path.iter() {
+                exec_list(filepath).expect("Failed to read zip-archive");
             }
         }
     }
 }
 
-fn exec_list(path: &String) -> zip::result::ZipResult<()> {
+fn expand_wildcard_path(path: &Vec<String>) -> Result<Vec<String>, Box<dyn Error>> {
+    let mut expand = Vec::new();
+
+    for pattern in path {
+        for entry in glob(pattern)? {
+            let path = entry?;
+            expand.push(path.to_str().unwrap().to_string());
+        }
+    }
+
+    Ok(expand)
+}
+
+fn exec_list(path: &String) -> Result<(), Box<dyn Error>> {
     let reader = File::open(path)?;
     let mut zip = zip::ZipArchive::new(reader)?;
 
