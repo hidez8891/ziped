@@ -34,13 +34,20 @@ impl CliParser {
 r#"Usage: ziped <COMMAND> <PATH>...
 
 Commands:
-  ls     List files in zip archive
-  help   Print this message
+  ls       List files in zip archive
+  help     Print this message
+  version  Print version
 
 Arguments:
-  PATH   Path to zip archive(s)
+  PATH     Path to zip archive(s)
 "#
         );
+        exit(0)
+    }
+
+    pub fn version() -> ! {
+        let version = env!("CARGO_PKG_VERSION");
+        println!("ziped v{}", version);
         exit(0)
     }
 
@@ -58,6 +65,10 @@ Arguments:
                 "help" => {
                     // subcommand: help
                     Self::usage();
+                }
+                "version" => {
+                    // subcommand: version
+                    Self::version();
                 }
                 opt if opt.starts_with("-") => {
                     // global option
