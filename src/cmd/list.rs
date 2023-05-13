@@ -9,7 +9,19 @@ use super::Command;
 pub(crate) struct List {}
 
 impl List {
-    pub(crate) fn parse(args: &VecDeque<String>) -> Command {
+    pub(crate) fn parse(args: &mut VecDeque<String>) -> Command {
+        while let Some(arg) = args.pop_front() {
+            match arg.as_str() {
+                "-h" | "--help" => {
+                    Self::usage();
+                }
+                _ => {
+                    args.push_front(arg);
+                    break;
+                }
+            }
+        }
+
         Command::List(List {})
     }
 

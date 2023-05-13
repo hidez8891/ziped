@@ -72,7 +72,7 @@ impl Parser {
             match arg.as_str() {
                 "ls" => {
                     // subcommand: ls
-                    commands.push(List::parse(&self.args));
+                    commands.push(List::parse(&mut self.args));
                 }
                 opt if opt.starts_with("-") => {
                     // global option
