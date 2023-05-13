@@ -19,7 +19,8 @@ fn main() {
         cmd::Command::List(cmd) => {
             let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
             for filepath in paths.iter() {
-                cmd.run(filepath).expect("Failed to read zip-archive");
+                cmd.run(&cli.option, filepath)
+                    .expect("Failed to read zip-archive");
             }
         }
     }

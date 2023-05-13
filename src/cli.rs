@@ -2,7 +2,20 @@ use std::{collections::VecDeque, process::exit};
 
 use crate::cmd::{Command, List};
 
+pub(crate) struct GlobalOption {
+    pub(crate) path_encoding: String,
+}
+
+impl Default for GlobalOption {
+    fn default() -> Self {
+        GlobalOption {
+            path_encoding: "ascii".to_owned(),
+        }
+    }
+}
+
 pub(crate) struct Cli {
+    pub(crate) option: GlobalOption,
     pub(crate) commands: Vec<Command>,
     pub(crate) paths: Vec<String>,
 }
@@ -14,11 +27,12 @@ impl Cli {
 r#"Usage: ziped [OPTION] <COMMAND> <PATH>...
 
 Options:
-  -h, --help               Print this message
-  -o, --output=<path>      Output archive path
-      --output-dir=<path>  Output directory path
-      --overwrite          Overwrite existing files
-  -v, --version            Print version
+  -e, --encoding=<encoding>  Encoding of file path (default: utf-8)
+  -h, --help                 Print this message
+  -o, --output=<path>        Output archive path
+      --output-dir=<path>    Output directory path
+      --overwrite            Overwrite existing files
+  -v, --version              Print version
 
 Commands
   ls        List files in zip archive
@@ -48,6 +62,7 @@ Arguments:
 }
 
 pub(crate) struct Parser {
+    opt: GlobalOption,
     args: VecDeque<String>,
 }
 
@@ -58,6 +73,7 @@ impl Parser {
         }
 
         let mut parser = Parser {
+            opt: GlobalOption::default(),
             args: args.into_iter().collect(),
         };
 
@@ -100,16 +116,23 @@ impl Parser {
             exit(1);
         }
 
-        Cli { commands, paths }
+        Cli {
+            option: std::mem::take(&mut self.opt),
+            commands,
+            paths,
+        }
     }
 
-    fn parse_global_option(&mut self, arg: String) -> ! {
+    fn parse_global_option(&mut self, arg: String) {
         match arg.as_str() {
             "-h" | "--help" => {
                 Cli::usage();
             }
             "-v" | "--version" => {
                 Cli::version();
+            }
+            opt if opt.starts_with("-e=") || opt.starts_with("--encoding=") => {
+                self.opt.path_encoding = String::from(opt.split("=").last().unwrap());
             }
             _ => {
                 eprintln!("Unknown option: {}", arg);
