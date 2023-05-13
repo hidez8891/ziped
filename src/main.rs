@@ -10,6 +10,8 @@ fn main() {
     let cli = cli::Parser::parse(args);
 
     if cli.commands.is_empty() || cli.paths.is_empty() {
+        println!("{}", cli.commands.len());
+        println!("{}", cli.paths.len());
         cli::Cli::usage();
     }
 

@@ -303,6 +303,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "wildmatch"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee583bdc5ff1cf9db20e9db5bb3ff4c3089a8f6b8b31aff265c9aba85812db86"
+
+[[package]]
 name = "zip"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,6 +333,7 @@ name = "ziped"
 version = "0.1.0"
 dependencies = [
  "glob",
+ "wildmatch",
  "zip",
 ]
 

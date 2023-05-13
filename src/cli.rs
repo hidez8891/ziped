@@ -80,6 +80,7 @@ impl Parser {
                 }
                 path if path.ends_with(".zip") => {
                     // positional argument
+                    self.args.push_front(arg);
                     break;
                 }
                 _ => {
