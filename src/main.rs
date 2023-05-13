@@ -34,14 +34,27 @@ impl CliParser {
 r#"Usage: ziped [OPTION] <COMMAND> <PATH>...
 
 Options:
-  -h, --help     Print this message
-  -v, --version  Print version
+  -h, --help               Print this message
+  -o, --output=<path>      Output archive path
+      --output-dir=<path>  Output directory path
+      --overwrite          Overwrite existing files
+  -v, --version            Print version
 
-Commands:
-  ls    List files in zip archive
+Commands
+  ls        List files in zip archive
+
+Commands (Edit)
+  add       Add files to zip archive
+  mv        Move files in zip archive
+  rm        Remove files from zip archive
+
+Commands (Convert)
+  conv      Convert image file to other format
+  convmv    Convert file path to other encoding
+  convexec  Convert file with external command
 
 Arguments:
-  PATH  Path to zip archive(s)
+  PATH      Path to zip archive(s)
 "#
         );
         exit(0)
