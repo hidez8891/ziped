@@ -64,10 +64,15 @@ Arguments:
         for i in 0..zip.len() {
             let file = zip.by_index(i)?;
 
-            let (name, _, _) = path_encoder.decode(file.name_raw());
-            let name = name.into_owned();
-            if matcher.matches(name.as_str()) {
-                println!("{}", name);
+            let filepath = if let Ok(path) = std::str::from_utf8(file.name_raw()) {
+                path.to_string()
+            } else {
+                let (path, _, _) = path_encoder.decode(file.name_raw());
+                path.into_owned()
+            };
+
+            if matcher.matches(filepath.as_str()) {
+                println!("{}", filepath);
             }
         }
 
