@@ -2,14 +2,23 @@ use std::{collections::VecDeque, process::exit};
 
 use crate::cmd::{Command, List};
 
+pub(crate) enum OutputOption {
+    None,
+    Path(String),
+    Dir(String),
+    Overwrite,
+}
+
 pub(crate) struct GlobalOption {
     pub(crate) path_encoding: String,
+    pub(crate) output: OutputOption,
 }
 
 impl Default for GlobalOption {
     fn default() -> Self {
         GlobalOption {
             path_encoding: "ascii".to_owned(),
+            output: OutputOption::None,
         }
     }
 }
@@ -133,6 +142,15 @@ impl Parser {
             }
             opt if opt.starts_with("-e=") || opt.starts_with("--encoding=") => {
                 self.opt.path_encoding = String::from(opt.split("=").last().unwrap());
+            }
+            opt if opt.starts_with("-o=") || opt.starts_with("--output=") => {
+                self.opt.output = OutputOption::Path(String::from(opt.split("=").last().unwrap()));
+            }
+            opt if opt.starts_with("--output-dir=") => {
+                self.opt.output = OutputOption::Dir(String::from(opt.split("=").last().unwrap()));
+            }
+            "--overwrite" => {
+                self.opt.output = OutputOption::Overwrite;
             }
             _ => {
                 eprintln!("Unknown option: {}", arg);
