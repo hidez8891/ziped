@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, process::exit};
 
-use crate::cmd::{Command, List};
+use crate::cmd::{Command, List, Remove};
 
 pub(crate) enum OutputOption {
     None,
@@ -98,6 +98,10 @@ impl Parser {
                 "ls" => {
                     // subcommand: ls
                     commands.push(List::parse(&mut self.args));
+                }
+                "rm" => {
+                    // subcommand: ls
+                    commands.push(Remove::parse(&mut self.args));
                 }
                 opt if opt.starts_with("-") => {
                     // global option

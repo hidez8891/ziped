@@ -23,6 +23,13 @@ fn main() {
                     .expect("Failed to read zip-archive");
             }
         }
+        cmd::Command::Remove(cmd) => {
+            let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
+            for filepath in paths.iter() {
+                cmd.run(&cli.option, filepath)
+                    .expect("Failed to access zip-archive");
+            }
+        }
     }
 }
 
