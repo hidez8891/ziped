@@ -94,7 +94,10 @@ Arguments:
                 continue;
             }
 
-            zipw.raw_copy_file(file)?;
+            // BUG-PATCH: zip-rs executes a garbled file copy.
+            let name_raw = file.name_raw().to_owned();
+            let name = unsafe { std::str::from_utf8_unchecked(&name_raw) };
+            zipw.raw_copy_file_rename(file, name)?;
         }
 
         drop(zipr);

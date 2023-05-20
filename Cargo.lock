@@ -556,8 +556,7 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 [[package]]
 name = "zip"
 version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e92305c174683d78035cbf1b70e18db6329cc0f1b9cae0a52ca90bf5bfe7125"
+source = "git+https://github.com/hidez8891/zip-rs/?branch=dev/ziped#4117a2993287ab4463e9622d9a5b9c58e75a14f6"
 dependencies = [
  "aes",
  "byteorder",
