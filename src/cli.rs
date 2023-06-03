@@ -231,63 +231,107 @@ impl OutputWriter {
     }
 
     pub(crate) fn close(&mut self) -> io::Result<()> {
+        // overwirte input file with temporary file.
         if let OutputWriterType::Temp(_) = &self.type_ {
             let mut temp_ = OutputWriterType::None;
             std::mem::swap(&mut temp_, &mut self.type_);
 
             let OutputWriterType::Temp(temp) = temp_ else { unreachable!(); };
-            println!("{:?}", &temp);
             let _ = temp.persist(self.path.clone())?;
         }
         Ok(())
     }
-}
 
-impl Drop for OutputWriter {
-    fn drop(&mut self) {
-        if let Err(err) = self.close() {
-            eprintln!("OutputWriter drop failed: {:?}", err);
-        }
+    fn as_file(&self) -> &std::fs::File {
+        let OutputWriterType::File(file) = &self.type_ else { unreachable!()};
+        return file;
+    }
+
+    fn as_temp(&self) -> &NamedTempFile {
+        let OutputWriterType::Temp(file) = &self.type_ else { unreachable!()};
+        return file;
     }
 }
 
 impl io::Read for OutputWriter {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.read(buf),
-            OutputWriterType::Temp(temp) => temp.read(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.read_vectored(bufs),
-            OutputWriterType::Temp(temp) => temp.read_vectored(bufs),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_vectored(bufs),
+            OutputWriterType::Temp(_) => self.as_temp().read_vectored(bufs),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.read_to_end(buf),
-            OutputWriterType::Temp(temp) => temp.read_to_end(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_to_end(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_to_end(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.read_to_string(buf),
-            OutputWriterType::Temp(temp) => temp.read_to_string(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_to_string(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_to_string(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.read_exact(buf),
-            OutputWriterType::Temp(temp) => temp.read_exact(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_exact(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_exact(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+}
+
+impl io::Read for &OutputWriter {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_vectored(bufs),
+            OutputWriterType::Temp(_) => self.as_temp().read_vectored(bufs),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_to_end(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_to_end(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_to_string(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_to_string(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().read_exact(buf),
+            OutputWriterType::Temp(_) => self.as_temp().read_exact(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
@@ -295,41 +339,83 @@ impl io::Read for OutputWriter {
 
 impl io::Write for OutputWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.write(buf),
-            OutputWriterType::Temp(temp) => temp.write(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write(buf),
+            OutputWriterType::Temp(_) => self.as_temp().write(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.flush(),
-            OutputWriterType::Temp(temp) => temp.flush(),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().flush(),
+            OutputWriterType::Temp(_) => self.as_temp().flush(),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.write_vectored(bufs),
-            OutputWriterType::Temp(temp) => temp.write_vectored(bufs),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_vectored(bufs),
+            OutputWriterType::Temp(_) => self.as_temp().write_vectored(bufs),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.write_all(buf),
-            OutputWriterType::Temp(temp) => temp.write_all(buf),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_all(buf),
+            OutputWriterType::Temp(_) => self.as_temp().write_all(buf),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
 
     fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.write_fmt(fmt),
-            OutputWriterType::Temp(temp) => temp.write_fmt(fmt),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_fmt(fmt),
+            OutputWriterType::Temp(_) => self.as_temp().write_fmt(fmt),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+}
+
+impl io::Write for &OutputWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write(buf),
+            OutputWriterType::Temp(_) => self.as_temp().write(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().flush(),
+            OutputWriterType::Temp(_) => self.as_temp().flush(),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_vectored(bufs),
+            OutputWriterType::Temp(_) => self.as_temp().write_vectored(bufs),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_all(buf),
+            OutputWriterType::Temp(_) => self.as_temp().write_all(buf),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> io::Result<()> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().write_fmt(fmt),
+            OutputWriterType::Temp(_) => self.as_temp().write_fmt(fmt),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }
@@ -337,9 +423,19 @@ impl io::Write for OutputWriter {
 
 impl io::Seek for OutputWriter {
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        match &mut self.type_ {
-            OutputWriterType::File(file) => file.seek(pos),
-            OutputWriterType::Temp(temp) => temp.seek(pos),
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().seek(pos),
+            OutputWriterType::Temp(_) => self.as_temp().seek(pos),
+            OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
+        }
+    }
+}
+
+impl io::Seek for &OutputWriter {
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        match &self.type_ {
+            OutputWriterType::File(_) => self.as_file().seek(pos),
+            OutputWriterType::Temp(_) => self.as_temp().seek(pos),
             OutputWriterType::None => Err(io::Error::new(io::ErrorKind::Other, "writer is closed")),
         }
     }

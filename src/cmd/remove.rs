@@ -70,8 +70,8 @@ Arguments:
             .map(|pattern| WildMatch::new(pattern))
             .collect();
 
-        let writer = OutputWriter::new(&opt.output, path)?;
-        let mut zipw = zip::ZipWriter::new(writer);
+        let mut writer = OutputWriter::new(&opt.output, path)?;
+        let mut zipw = zip::ZipWriter::new(&writer);
 
         for i in 0..zipr.len() {
             let file = zipr.by_index(i)?;
@@ -99,6 +99,10 @@ Arguments:
         drop(zipr);
 
         zipw.finish()?;
+        drop(zipw);
+
+        writer.close()?;
+
         Ok(())
     }
 }
