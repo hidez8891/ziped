@@ -1,13 +1,13 @@
 use encoding_rs::Encoding;
 use std::collections::VecDeque;
 use std::error::Error;
-use std::fs;
+use std::io::{Read, Seek, Write};
 use std::process::exit;
 use wildmatch::WildMatch;
 use zip;
 
 use super::Command;
-use crate::cli::{GlobalOption, OutputWriter};
+use crate::cli::GlobalOption;
 
 pub(crate) struct Remove {
     filters: Vec<String>,
@@ -57,8 +57,16 @@ Arguments:
         exit(0)
     }
 
-    pub(crate) fn run(&self, opt: &GlobalOption, path: &str) -> Result<(), Box<dyn Error>> {
-        let reader = fs::File::open(path)?;
+    pub(crate) fn run<R, W>(
+        &self,
+        opt: &GlobalOption,
+        reader: R,
+        writer: W,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        R: Read + Seek,
+        W: Write + Seek,
+    {
         let mut zipr = zip::ZipArchive::new(reader)?;
 
         let path_encoder = Encoding::for_label(opt.path_encoding.as_bytes())
@@ -70,8 +78,7 @@ Arguments:
             .map(|pattern| WildMatch::new(pattern))
             .collect();
 
-        let mut writer = OutputWriter::new(&opt.output, path)?;
-        let mut zipw = zip::ZipWriter::new(&writer);
+        let mut zipw = zip::ZipWriter::new(writer);
 
         for i in 0..zipr.len() {
             let file = zipr.by_index(i)?;
@@ -96,13 +103,7 @@ Arguments:
             zipw.raw_copy_file_rename(file, name)?;
         }
 
-        drop(zipr);
-
         zipw.finish()?;
-        drop(zipw);
-
-        writer.close()?;
-
         Ok(())
     }
 }

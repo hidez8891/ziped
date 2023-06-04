@@ -1,7 +1,7 @@
 use encoding_rs::Encoding;
 use std::collections::VecDeque;
 use std::error::Error;
-use std::fs::File;
+use std::io::{Read, Seek};
 use std::process::exit;
 use wildmatch::WildMatch;
 use zip;
@@ -53,8 +53,10 @@ Arguments:
         exit(0)
     }
 
-    pub(crate) fn run(&self, opt: &GlobalOption, path: &str) -> Result<(), Box<dyn Error>> {
-        let reader = File::open(path)?;
+    pub(crate) fn run<R>(&self, opt: &GlobalOption, reader: R) -> Result<(), Box<dyn Error>>
+    where
+        R: Read + Seek,
+    {
         let mut zip = zip::ZipArchive::new(reader)?;
 
         let path_encoder = Encoding::for_label(opt.path_encoding.as_bytes())

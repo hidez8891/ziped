@@ -1,6 +1,7 @@
+use cli::OutputWriter;
 use glob::glob;
-use std::env;
 use std::error::Error;
+use std::{env, fs};
 
 mod cli;
 mod cmd;
@@ -15,21 +16,24 @@ fn main() {
         cli::Cli::usage();
     }
 
-    match &cli.commands[0] {
-        cmd::Command::List(cmd) => {
-            let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
-            for filepath in paths.iter() {
-                cmd.run(&cli.option, filepath)
+    let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
+    for filepath in paths.iter() {
+        let reader = fs::File::open(filepath).expect("Failed to open file for read");
+        let mut writer =
+            OutputWriter::new(&cli.option.output, filepath).expect("Failed to open file for write");
+
+        match &cli.commands[0] {
+            cmd::Command::List(cmd) => {
+                cmd.run(&cli.option, &reader)
                     .expect("Failed to read zip-archive");
             }
-        }
-        cmd::Command::Remove(cmd) => {
-            let paths = expand_wildcard_path(&cli.paths).expect("Failed to read path");
-            for filepath in paths.iter() {
-                cmd.run(&cli.option, filepath)
+            cmd::Command::Remove(cmd) => {
+                cmd.run(&cli.option, &reader, &writer)
                     .expect("Failed to access zip-archive");
             }
         }
+
+        writer.close().expect("Failed to close file for write");
     }
 }
 

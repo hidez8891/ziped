@@ -185,9 +185,10 @@ pub(crate) struct OutputWriter {
 impl OutputWriter {
     pub(crate) fn new(option: &OutputOption, path: &str) -> Result<Self, Box<dyn Error>> {
         match option {
-            OutputOption::None => {
-                return Err(format!("Output is not specified").into());
-            }
+            OutputOption::None => Ok(OutputWriter {
+                type_: OutputWriterType::None,
+                path: PathBuf::new(),
+            }),
             OutputOption::Path(path) => {
                 let output_path = PathBuf::from(path);
                 if output_path.exists() {
