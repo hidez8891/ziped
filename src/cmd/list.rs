@@ -113,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn run_normal() {
+    fn show_all() {
         let reader = setup_reader();
         let mut writer = io::Cursor::new(Vec::new());
 
@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn run_filter_file() {
+    fn target_filter() {
         let reader = setup_reader();
         let mut writer = io::Cursor::new(Vec::new());
 
