@@ -107,3 +107,70 @@ Arguments:
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
+    use std::io;
+
+    fn setup_reader() -> io::Cursor<Vec<u8>> {
+        let mut buf = io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(&mut buf);
+
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("test01.txt", options).unwrap();
+        zip.write(b"test file 01 text").unwrap();
+        zip.start_file("test02.txt", options).unwrap();
+        zip.write(b"test file 02 text").unwrap();
+        zip.start_file("test03.txt", options).unwrap();
+        zip.write(b"test file 03 text").unwrap();
+        zip.finish().unwrap();
+        drop(zip);
+
+        return buf;
+    }
+
+    #[test]
+    fn filter_empty() {
+        let reader = setup_reader();
+        let mut writer = io::Cursor::new(Vec::new());
+
+        let cmd = Remove {
+            filters: Vec::new(),
+        };
+        let opt = GlobalOption {
+            path_encoding: "sjis".to_owned(),
+            output: cli::OutputOption::None,
+        };
+
+        cmd.run(&opt, reader, &mut writer).unwrap();
+
+        let zip = zip::ZipArchive::new(writer).unwrap();
+        let mut files = zip.file_names().collect::<Vec<_>>();
+        files.sort();
+        assert_eq!(vec!["test01.txt", "test02.txt", "test03.txt"], files);
+    }
+
+    #[test]
+    fn filter_files() {
+        let reader = setup_reader();
+        let mut writer = io::Cursor::new(Vec::new());
+
+        let cmd = Remove {
+            filters: vec!["test02.txt".to_owned()],
+        };
+        let opt = GlobalOption {
+            path_encoding: "sjis".to_owned(),
+            output: cli::OutputOption::None,
+        };
+
+        cmd.run(&opt, reader, &mut writer).unwrap();
+
+        let zip = zip::ZipArchive::new(writer).unwrap();
+        let mut files = zip.file_names().collect::<Vec<_>>();
+        files.sort();
+        assert_eq!(vec!["test01.txt", "test03.txt"], files);
+    }
+}
