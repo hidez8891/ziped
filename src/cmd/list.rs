@@ -1,7 +1,7 @@
 use encoding_rs::Encoding;
 use std::collections::VecDeque;
 use std::error::Error;
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, Write};
 use std::process::exit;
 use wildmatch::WildMatch;
 use zip;
@@ -53,9 +53,15 @@ Arguments:
         exit(0)
     }
 
-    pub(crate) fn run<R>(&self, opt: &GlobalOption, reader: R) -> Result<(), Box<dyn Error>>
+    pub(crate) fn run<R, W>(
+        &self,
+        opt: &GlobalOption,
+        reader: R,
+        writer: &mut W,
+    ) -> Result<(), Box<dyn Error>>
     where
         R: Read + Seek,
+        W: Write,
     {
         let mut zip = zip::ZipArchive::new(reader)?;
 
@@ -74,10 +80,77 @@ Arguments:
             };
 
             if matcher.matches(filepath.as_str()) {
-                println!("{}", filepath);
+                writeln!(writer, "{}", filepath)?;
             }
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
+    use std::io;
+
+    fn setup_reader() -> io::Cursor<Vec<u8>> {
+        let mut buf = io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(&mut buf);
+
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("test01.txt", options).unwrap();
+        zip.write(b"test file 01 text").unwrap();
+        zip.start_file("test02.txt", options).unwrap();
+        zip.write(b"test file 02 text").unwrap();
+        zip.start_file("test03.txt", options).unwrap();
+        zip.write(b"test file 03 text").unwrap();
+        zip.finish().unwrap();
+        drop(zip);
+
+        return buf;
+    }
+
+    #[test]
+    fn run_normal() {
+        let reader = setup_reader();
+        let mut writer = io::Cursor::new(Vec::new());
+
+        let cmd = List {
+            filter: String::from("*"),
+        };
+        let opt = GlobalOption {
+            path_encoding: "sjis".to_owned(),
+            output: cli::OutputOption::None,
+        };
+
+        cmd.run(&opt, reader, &mut writer).unwrap();
+
+        assert_eq!(
+            "test01.txt\ntest02.txt\ntest03.txt\n",
+            String::from_utf8(writer.into_inner()).unwrap()
+        );
+    }
+
+    #[test]
+    fn run_filter_file() {
+        let reader = setup_reader();
+        let mut writer = io::Cursor::new(Vec::new());
+
+        let cmd = List {
+            filter: String::from("*2.txt"),
+        };
+        let opt = GlobalOption {
+            path_encoding: "sjis".to_owned(),
+            output: cli::OutputOption::None,
+        };
+
+        cmd.run(&opt, reader, &mut writer).unwrap();
+
+        assert_eq!(
+            "test02.txt\n",
+            String::from_utf8(writer.into_inner()).unwrap()
+        );
     }
 }

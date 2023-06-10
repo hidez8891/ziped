@@ -1,7 +1,7 @@
 use cli::OutputWriter;
 use glob::glob;
 use std::error::Error;
-use std::{env, fs};
+use std::{env, fs, io};
 
 mod cli;
 mod cmd;
@@ -24,7 +24,7 @@ fn main() {
 
         match &cli.commands[0] {
             cmd::Command::List(cmd) => {
-                cmd.run(&cli.option, &reader)
+                cmd.run(&cli.option, &reader, &mut io::stdout())
                     .expect("Failed to read zip-archive");
             }
             cmd::Command::Remove(cmd) => {
